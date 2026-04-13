@@ -14,10 +14,13 @@ whatsappRouter.post('/webhook/whatsapp', async (req: Request, res: Response) => 
     // Validate Twilio signature in production
     if (env.NODE_ENV === 'production') {
       const signature = req.headers['x-twilio-signature'] as string;
-      const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+      // Use x-forwarded-proto and host headers for correct URL behind Railway's proxy
+      const protocol = (req.headers['x-forwarded-proto'] as string) || req.protocol;
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      const url = `${protocol}://${host}${req.originalUrl}`;
 
       if (!signature || !validateTwilioSignature(url, req.body, signature)) {
-        console.warn('Invalid Twilio signature — rejecting request');
+        console.warn(`Invalid Twilio signature — rejecting (url: ${url})`);
         res.status(403).send('Forbidden');
         return;
       }
