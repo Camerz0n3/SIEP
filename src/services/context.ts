@@ -1,23 +1,27 @@
-import { getDb, generateId } from './database';
+import { db, generateId } from './database';
 import { CONTEXT_WINDOW_MESSAGES, CONTEXT_TIMEOUT_HOURS } from '../config/constants';
 
+interface ContextRow {
+  id: string;
+  role: string;
+  content: string;
+  intent?: string;
+  timestamp: string;
+}
+
 export async function getConversationContext(): Promise<string> {
-  const db = getDb();
   const cutoff = new Date(
     Date.now() - CONTEXT_TIMEOUT_HOURS * 60 * 60 * 1000
   ).toISOString();
 
   const rows = db
-    .prepare(
-      `SELECT role, content FROM conversation_context
-       WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT ?`
-    )
-    .all(cutoff, CONTEXT_WINDOW_MESSAGES) as { role: string; content: string }[];
+    .findWhere<ContextRow>('conversation_context', (r) => r.timestamp >= cutoff)
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+    .slice(-CONTEXT_WINDOW_MESSAGES);
 
   if (rows.length === 0) return '';
 
   return rows
-    .reverse()
     .map((msg) => `${msg.role === 'user' ? 'Cameron' : 'Siep'}: ${msg.content}`)
     .join('\n');
 }
@@ -27,17 +31,19 @@ export async function saveMessage(
   content: string,
   intent?: string
 ): Promise<void> {
-  const db = getDb();
-  db.prepare(
-    `INSERT INTO conversation_context (id, role, content, intent) VALUES (?, ?, ?, ?)`
-  ).run(generateId(), role, content, intent || null);
+  db.insert('conversation_context', {
+    id: generateId(),
+    role,
+    content,
+    intent: intent || null,
+    timestamp: new Date().toISOString(),
+  });
 }
 
 export async function clearOldContext(): Promise<void> {
-  const db = getDb();
   const cutoff = new Date(
     Date.now() - CONTEXT_TIMEOUT_HOURS * 60 * 60 * 1000
   ).toISOString();
 
-  db.prepare(`DELETE FROM conversation_context WHERE timestamp < ?`).run(cutoff);
+  db.delete<ContextRow>('conversation_context', (r) => r.timestamp < cutoff);
 }

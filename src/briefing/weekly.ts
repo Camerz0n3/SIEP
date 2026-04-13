@@ -1,7 +1,8 @@
 import { queryEvents } from '../services/calendar';
-import { getDb, generateId } from '../services/database';
+import { db, generateId } from '../services/database';
 import { getUpcomingDates } from '../services/dates';
 import { generateResponse } from '../services/claude';
+import { Task } from '../services/tasks';
 import { format, subDays } from 'date-fns';
 import { TZDate } from '@date-fns/tz';
 import { TIMEZONE } from '../config/constants';
@@ -9,15 +10,13 @@ import { TIMEZONE } from '../config/constants';
 export async function generateWeeklyWrapUp(): Promise<string> {
   const now = new TZDate(new Date(), TIMEZONE);
   const weekAgo = subDays(now, 7);
-  const db = getDb();
 
-  const completedTasks = db
-    .prepare(`SELECT * FROM tasks WHERE status = 'completed' AND completed_at >= ?`)
-    .all(weekAgo.toISOString()) as { title: string }[];
+  const completedTasks = db.findWhere<Task>(
+    'tasks',
+    (t) => t.status === 'completed' && !!t.completed_at && t.completed_at >= weekAgo.toISOString()
+  );
 
-  const pendingTasks = db
-    .prepare(`SELECT * FROM tasks WHERE status = 'pending'`)
-    .all() as { title: string }[];
+  const pendingTasks = db.findWhere<Task>('tasks', (t) => t.status === 'pending');
 
   const [pastEvents, upcomingDates] = await Promise.allSettled([
     queryEvents({ date: format(weekAgo, 'yyyy-MM-dd'), range: 'week' }),
@@ -44,9 +43,13 @@ ${upcomingDates.status === 'fulfilled' ? upcomingDates.value.map((d) => `• ${d
     ''
   );
 
-  db.prepare(
-    `INSERT INTO briefing_log (id, type, content, data_snapshot) VALUES (?, ?, ?, ?)`
-  ).run(generateId(), 'weekly', wrapUp, wrapUpData);
+  db.insert('briefing_log', {
+    id: generateId(),
+    type: 'weekly',
+    content: wrapUp,
+    data_snapshot: wrapUpData,
+    sent_at: new Date().toISOString(),
+  });
 
   return wrapUp;
 }

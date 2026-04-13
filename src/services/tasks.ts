@@ -1,7 +1,7 @@
-import { getDb, generateId } from './database';
+import { db, generateId } from './database';
 import { TIMEZONE } from '../config/constants';
 import { TZDate } from '@date-fns/tz';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format } from 'date-fns';
 
 export interface Task {
   id: string;
@@ -14,7 +14,7 @@ export interface Task {
   category: string;
   created_at: string;
   completed_at?: string;
-  reminder_sent: number;
+  reminder_sent: boolean;
   notes?: string;
 }
 
@@ -26,79 +26,56 @@ export async function createTask(params: {
   category?: string;
   description?: string;
 }): Promise<Task> {
-  const db = getDb();
-  const id = generateId();
+  const task: Task = {
+    id: generateId(),
+    title: params.title,
+    description: params.description,
+    due_date: params.due_date || undefined,
+    due_time: params.due_time || undefined,
+    priority: params.priority || 'normal',
+    status: 'pending',
+    category: params.category || 'general',
+    created_at: new Date().toISOString(),
+    reminder_sent: false,
+  };
 
-  db.prepare(
-    `INSERT INTO tasks (id, title, description, due_date, due_time, priority, category)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(
-    id,
-    params.title,
-    params.description || null,
-    params.due_date || null,
-    params.due_time || null,
-    params.priority || 'normal',
-    params.category || 'general'
-  );
-
-  return db.prepare(`SELECT * FROM tasks WHERE id = ?`).get(id) as Task;
+  return db.insert('tasks', task);
 }
 
 export async function listTasks(filter?: {
   filter?: 'all' | 'today' | 'overdue' | 'category';
   category?: string;
 }): Promise<Task[]> {
-  const db = getDb();
-  const now = new TZDate(new Date(), TIMEZONE);
+  const now = new Date().toISOString();
+  let tasks = db.findWhere<Task>('tasks', (t) => t.status === 'pending');
 
   if (filter?.filter === 'today') {
-    const todayStart = startOfDay(now).toISOString();
-    const todayEnd = endOfDay(now).toISOString();
-    return db
-      .prepare(
-        `SELECT * FROM tasks WHERE status = 'pending' AND due_date >= ? AND due_date <= ? ORDER BY due_date ASC`
-      )
-      .all(todayStart, todayEnd) as Task[];
+    const today = new Date().toISOString().split('T')[0];
+    tasks = tasks.filter((t) => t.due_date && t.due_date.startsWith(today));
+  } else if (filter?.filter === 'overdue') {
+    tasks = tasks.filter((t) => t.due_date && t.due_date < now);
+  } else if (filter?.filter === 'category' && filter.category) {
+    tasks = tasks.filter((t) => t.category === filter.category);
   }
 
-  if (filter?.filter === 'overdue') {
-    return db
-      .prepare(
-        `SELECT * FROM tasks WHERE status = 'pending' AND due_date < ? AND due_date IS NOT NULL ORDER BY due_date ASC`
-      )
-      .all(now.toISOString()) as Task[];
-  }
-
-  if (filter?.filter === 'category' && filter.category) {
-    return db
-      .prepare(
-        `SELECT * FROM tasks WHERE status = 'pending' AND category = ? ORDER BY due_date ASC`
-      )
-      .all(filter.category) as Task[];
-  }
-
-  return db
-    .prepare(`SELECT * FROM tasks WHERE status = 'pending' ORDER BY due_date ASC`)
-    .all() as Task[];
+  return tasks.sort((a, b) => (a.due_date || 'z').localeCompare(b.due_date || 'z'));
 }
 
 export async function completeTask(titleQuery: string): Promise<Task | null> {
-  const db = getDb();
-
-  const task = db
-    .prepare(
-      `SELECT * FROM tasks WHERE status = 'pending' AND title LIKE ? LIMIT 1`
-    )
-    .get(`%${titleQuery}%`) as Task | undefined;
+  const query = titleQuery.toLowerCase();
+  const task = db.findOne<Task>(
+    'tasks',
+    (t) => t.status === 'pending' && t.title.toLowerCase().includes(query)
+  );
 
   if (!task) return null;
 
-  db.prepare(
-    `UPDATE tasks SET status = 'completed', completed_at = datetime('now') WHERE id = ?`
-  ).run(task.id);
+  const updated = db.update<Task>('tasks', (t) => t.id === task.id, {
+    status: 'completed',
+    completed_at: new Date().toISOString(),
+  });
 
-  return db.prepare(`SELECT * FROM tasks WHERE id = ?`).get(task.id) as Task;
+  return updated || null;
 }
 
 export async function getOverdueTasks(): Promise<Task[]> {
@@ -106,19 +83,15 @@ export async function getOverdueTasks(): Promise<Task[]> {
 }
 
 export async function getDueReminders(): Promise<Task[]> {
-  const db = getDb();
   const now = new Date().toISOString();
-
-  return db
-    .prepare(
-      `SELECT * FROM tasks WHERE status = 'pending' AND reminder_sent = 0 AND due_date IS NOT NULL AND due_date <= ?`
-    )
-    .all(now) as Task[];
+  return db.findWhere<Task>(
+    'tasks',
+    (t) => t.status === 'pending' && !t.reminder_sent && !!t.due_date && t.due_date <= now
+  );
 }
 
 export async function markReminderSent(taskId: string): Promise<void> {
-  const db = getDb();
-  db.prepare(`UPDATE tasks SET reminder_sent = 1 WHERE id = ?`).run(taskId);
+  db.update<Task>('tasks', (t) => t.id === taskId, { reminder_sent: true });
 }
 
 export function formatTasksForDisplay(tasks: Task[]): string {
@@ -128,13 +101,11 @@ export function formatTasksForDisplay(tasks: Task[]): string {
 
   return tasks
     .map((t) => {
-      const overdue =
-        t.due_date && new Date(t.due_date) < now ? '[Overdue] ' : '';
+      const overdue = t.due_date && new Date(t.due_date) < now ? '[Overdue] ' : '';
       const due = t.due_date
         ? ` — due ${format(new TZDate(new Date(t.due_date), TIMEZONE), 'EEE d MMM')}`
         : '';
-      const priority =
-        t.priority === 'high' || t.priority === 'urgent' ? ' ⚡' : '';
+      const priority = t.priority === 'high' || t.priority === 'urgent' ? ' ⚡' : '';
       return `• ${overdue}${t.title}${due}${priority}`;
     })
     .join('\n');

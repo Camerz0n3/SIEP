@@ -4,7 +4,7 @@ import { scanAllEmails } from '../services/gmail';
 import { getUpcomingDates } from '../services/dates';
 import { getWeather, formatWeatherForDisplay } from '../services/weather';
 import { generateResponse } from '../services/claude';
-import { getDb, generateId } from '../services/database';
+import { db, generateId } from '../services/database';
 import { format } from 'date-fns';
 import { TZDate } from '@date-fns/tz';
 import { TIMEZONE } from '../config/constants';
@@ -72,10 +72,13 @@ ${weatherDisplay}
   );
 
   // Log the briefing
-  const db = getDb();
-  db.prepare(
-    `INSERT INTO briefing_log (id, type, content, data_snapshot) VALUES (?, ?, ?, ?)`
-  ).run(generateId(), 'daily', briefing, briefingData);
+  db.insert('briefing_log', {
+    id: generateId(),
+    type: 'daily',
+    content: briefing,
+    data_snapshot: briefingData,
+    sent_at: new Date().toISOString(),
+  });
 
   return briefing;
 }

@@ -1,4 +1,4 @@
-import { getDb, generateId } from './database';
+import { db, generateId } from './database';
 
 export interface ImportantDate {
   id: string;
@@ -20,19 +20,21 @@ export async function addImportantDate(params: {
   year?: number;
   category?: string;
 }): Promise<ImportantDate> {
-  const db = getDb();
-  const id = generateId();
+  const date: ImportantDate = {
+    id: generateId(),
+    title: params.title,
+    person_name: params.person_name,
+    date_month: params.month,
+    date_day: params.day,
+    year: params.year,
+    category: params.category || 'personal',
+    reminder_days_before: 3,
+  };
 
-  db.prepare(
-    `INSERT INTO important_dates (id, title, person_name, date_month, date_day, year, category)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, params.title, params.person_name || null, params.month, params.day, params.year || null, params.category || 'personal');
-
-  return db.prepare(`SELECT * FROM important_dates WHERE id = ?`).get(id) as ImportantDate;
+  return db.insert('important_dates', date);
 }
 
 export async function getUpcomingDates(daysAhead: number = 7): Promise<ImportantDate[]> {
-  const db = getDb();
   const dates: ImportantDate[] = [];
   const now = new Date();
 
@@ -42,10 +44,10 @@ export async function getUpcomingDates(daysAhead: number = 7): Promise<Important
     const month = checkDate.getMonth() + 1;
     const day = checkDate.getDate();
 
-    const rows = db
-      .prepare(`SELECT * FROM important_dates WHERE date_month = ? AND date_day = ?`)
-      .all(month, day) as ImportantDate[];
-
+    const rows = db.findWhere<ImportantDate>(
+      'important_dates',
+      (d) => d.date_month === month && d.date_day === day
+    );
     dates.push(...rows);
   }
 
@@ -53,8 +55,7 @@ export async function getUpcomingDates(daysAhead: number = 7): Promise<Important
 }
 
 export async function getDatesByMonth(month: number): Promise<ImportantDate[]> {
-  const db = getDb();
   return db
-    .prepare(`SELECT * FROM important_dates WHERE date_month = ? ORDER BY date_day ASC`)
-    .all(month) as ImportantDate[];
+    .findWhere<ImportantDate>('important_dates', (d) => d.date_month === month)
+    .sort((a, b) => a.date_day - b.date_day);
 }

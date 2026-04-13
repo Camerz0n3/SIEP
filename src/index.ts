@@ -94,12 +94,12 @@ app.post('/api/tasks', async (req, res) => {
 
 app.patch('/api/tasks/:id/complete', async (req, res) => {
   try {
-    const { getDb } = await import('./services/database');
-    const db = getDb();
-    db.prepare(`UPDATE tasks SET status = 'completed', completed_at = datetime('now') WHERE id = ?`)
-      .run(req.params.id);
-    const task = db.prepare(`SELECT * FROM tasks WHERE id = ?`).get(req.params.id);
-    res.json(task);
+    const { db } = await import('./services/database');
+    const updated = db.update<any>('tasks', (t: any) => t.id === req.params.id, {
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+    });
+    res.json(updated);
   } catch (error) {
     res.status(500).json({ error: 'Failed to complete task' });
   }
@@ -137,9 +137,10 @@ app.get('/api/emails', async (_req, res) => {
 
 app.get('/api/briefings', async (_req, res) => {
   try {
-    const { getDb } = await import('./services/database');
-    const db = getDb();
-    const briefings = db.prepare(`SELECT * FROM briefing_log ORDER BY sent_at DESC LIMIT 10`).all();
+    const { db } = await import('./services/database');
+    const briefings = db.findAll<{ sent_at: string }>('briefing_log')
+      .sort((a, b) => b.sent_at.localeCompare(a.sent_at))
+      .slice(0, 10);
     res.json(briefings);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch briefings' });

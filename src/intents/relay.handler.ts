@@ -1,10 +1,9 @@
 import { ParsedIntent } from '../services/claude';
-import { findContact } from '../services/contacts';
+import { findContact, Contact } from '../services/contacts';
 import { sendSMS } from '../services/twilio';
+import { db } from '../services/database';
 
-export async function handleRelayIntent(
-  parsed: ParsedIntent
-): Promise<string> {
+export async function handleRelayIntent(parsed: ParsedIntent): Promise<string> {
   const p = parsed.params as Record<string, string | undefined>;
 
   if (!p.recipient || !p.message) {
@@ -25,12 +24,10 @@ export async function handleRelayIntent(
 
   await sendSMS(contact.phone, messageBody);
 
-  // Mark contact as introduced
   if (isFirstTime) {
-    const { getDb } = await import('../services/database');
-    const db = getDb();
-    db.prepare(`UPDATE contacts SET notes = ? WHERE id = ?`)
-      .run(`${contact.notes || ''} relay_introduced`.trim(), contact.id);
+    db.update<Contact>('contacts', (c) => c.id === contact.id, {
+      notes: `${contact.notes || ''} relay_introduced`.trim(),
+    });
   }
 
   return `Done — told ${contact.name}: "${p.message}"`;
