@@ -1,11 +1,11 @@
 [phases.setup]
-nixPkgs = ["nodejs_22", "python3", "gcc", "pkg-config"]
+nixPkgs = ["nodejs_23"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm install", "cd dashboard && npm install"]
 
 [phases.build]
-cmds = ["npm run build", "cd dashboard && npm ci && npm run build"]
+cmds = ["npm run build", "cd dashboard && npm run build"]
 
 [start]
 cmd = "npm run start"
