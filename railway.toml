@@ -1,0 +1,21 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm install && npm run build && cd dashboard && npm install && npm run build"
+
+[deploy]
+startCommand = "npm run start"
+healthcheckPath = "/health"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[[crons]]
+schedule = "50 4 * * *"
+endpoint = "/cron/daily-briefing"
+
+[[crons]]
+schedule = "50 18 * * 0"
+endpoint = "/cron/weekly-wrapup"
+
+[[crons]]
+schedule = "*/5 * * * *"
+endpoint = "/cron/check-reminders"
