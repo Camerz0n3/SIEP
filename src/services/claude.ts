@@ -4,7 +4,7 @@ import { TIMEZONE } from '../config/constants';
 import { TZDate } from '@date-fns/tz';
 import { format } from 'date-fns';
 
-const GEMINI_MODEL = 'gemini-1.5-flash';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 
 let _client: GoogleGenerativeAI | null = null;
 
