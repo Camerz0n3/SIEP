@@ -13,8 +13,8 @@ const envSchema = z.object({
   GOOGLE_PERSONAL_REFRESH_TOKEN: z.string().min(1),
   GOOGLE_KOJA_REFRESH_TOKEN: z.string().optional(),
 
-  // Google Gemini (AI brain — free tier)
-  GEMINI_API_KEY: z.string().min(1),
+  // Groq (AI brain — free tier)
+  GROQ_API_KEY: z.string().min(1),
 
   // App
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

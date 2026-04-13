@@ -1,17 +1,17 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import { getEnv } from '../config/env';
 import { TIMEZONE } from '../config/constants';
 import { TZDate } from '@date-fns/tz';
 import { format } from 'date-fns';
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
-let _client: GoogleGenerativeAI | null = null;
+let _client: Groq | null = null;
 
-function getClient(): GoogleGenerativeAI {
+function getClient(): Groq {
   if (_client) return _client;
   const env = getEnv();
-  _client = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+  _client = new Groq({ apiKey: env.GROQ_API_KEY });
   return _client;
 }
 
@@ -90,33 +90,35 @@ export async function parseIntent(
   conversationContext: string
 ): Promise<ParsedIntent> {
   const client = getClient();
-  const model = client.getGenerativeModel({
-    model: GEMINI_MODEL,
-    systemInstruction: INTENT_PARSER_PROMPT,
-  });
-
   const now = new TZDate(new Date(), TIMEZONE);
   const currentDateTime = format(now, "EEEE, d MMMM yyyy 'at' HH:mm");
 
-  const result = await model.generateContent(
-    `Current date/time: ${currentDateTime}
+  const response = await client.chat.completions.create({
+    model: GROQ_MODEL,
+    messages: [
+      { role: 'system', content: INTENT_PARSER_PROMPT },
+      {
+        role: 'user',
+        content: `Current date/time: ${currentDateTime}
 
 Recent conversation context:
 ${conversationContext || 'No recent context.'}
 
-Cameron's message: "${message}"`
-  );
+Cameron's message: "${message}"`,
+      },
+    ],
+    max_tokens: 1024,
+    temperature: 0.3,
+  });
 
-  const text = result.response.text();
+  const text = response.choices[0]?.message?.content || '';
 
-  // Extract JSON from the response (handle potential markdown wrapping)
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     return {
       intent: 'general_chat',
       params: {},
-      response:
-        "Sorry boss, my brain glitched for a sec. Run that by me again?",
+      response: "Sorry boss, my brain glitched for a sec. Run that by me again?",
     };
   }
 
@@ -128,14 +130,24 @@ export async function generateResponse(
   context: string
 ): Promise<string> {
   const client = getClient();
-  const model = client.getGenerativeModel({
-    model: GEMINI_MODEL,
-    systemInstruction: `${SIEP_SYSTEM_PROMPT}\n\nCurrent date/time: ${format(new TZDate(new Date(), TIMEZONE), "EEEE, d MMMM yyyy 'at' HH:mm")}`,
+  const now = new TZDate(new Date(), TIMEZONE);
+  const currentDateTime = format(now, "EEEE, d MMMM yyyy 'at' HH:mm");
+
+  const response = await client.chat.completions.create({
+    model: GROQ_MODEL,
+    messages: [
+      {
+        role: 'system',
+        content: `${SIEP_SYSTEM_PROMPT}\n\nCurrent date/time: ${currentDateTime}`,
+      },
+      {
+        role: 'user',
+        content: `${context ? `Context:\n${context}\n\n` : ''}${prompt}`,
+      },
+    ],
+    max_tokens: 2048,
+    temperature: 0.7,
   });
 
-  const result = await model.generateContent(
-    `${context ? `Context:\n${context}\n\n` : ''}${prompt}`
-  );
-
-  return result.response.text() || 'Brain freeze. Try again?';
+  return response.choices[0]?.message?.content || 'Brain freeze. Try again?';
 }

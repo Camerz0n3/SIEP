@@ -15,12 +15,12 @@
   "type": "commonjs",
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
-    "@google/generative-ai": "^0.24.1",
     "chrono-node": "^2.9.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "express": "^5.2.1",
     "googleapis": "^171.4.0",
+    "groq-sdk": "^1.1.2",
     "twilio": "^5.13.1",
     "zod": "^4.3.6"
   },
