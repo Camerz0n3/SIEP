@@ -24,7 +24,7 @@ function processSprite(
   cropY = 0,
   cropW = img.naturalWidth,
   cropH = img.naturalHeight,
-  threshold = 30,
+  threshold = 6,
 ): Texture {
   const tmp = document.createElement('canvas')
   tmp.width = cropW
@@ -116,11 +116,11 @@ export async function loadCharacterTextures(): Promise<void> {
 
   // Use lower threshold (15) for dark-clothed characters to preserve shoes/dark fabric
   // Cameron standing pose loaded but not currently used (sitting is default)
-  processSprite(camImg, 0, 0, camImg.naturalWidth, camImg.naturalHeight, 15)
-  cameronSittingTex = processSprite(camSitImg, 0, 0, camSitImg.naturalWidth, camSitImg.naturalHeight, 15)
-  siepTex = processSprite(siepImg, 0, 0, siepImg.naturalWidth, siepImg.naturalHeight, 15)
-  guardTex = processSprite(guardImg, 0, 0, Math.floor(guardImg.naturalWidth / 2), guardImg.naturalHeight, 15)
-  guardLeftTex = processSprite(guardLeftImg, 0, 0, guardLeftImg.naturalWidth, guardLeftImg.naturalHeight, 15)
+  processSprite(camImg, 0, 0, camImg.naturalWidth, camImg.naturalHeight, 6)
+  cameronSittingTex = processSprite(camSitImg, 0, 0, camSitImg.naturalWidth, camSitImg.naturalHeight, 6)
+  siepTex = processSprite(siepImg, 0, 0, siepImg.naturalWidth, siepImg.naturalHeight, 6)
+  guardTex = processSprite(guardImg, 0, 0, Math.floor(guardImg.naturalWidth / 2), guardImg.naturalHeight, 6)
+  guardLeftTex = processSprite(guardLeftImg, 0, 0, guardLeftImg.naturalWidth, guardLeftImg.naturalHeight, 6)
   mansionTex = processSprite(mansionImg, 0, 0, mansionImg.naturalWidth, mansionImg.naturalHeight, 20)
   backgroundTex = processSprite(bgImg, 0, 0, bgImg.naturalWidth, bgImg.naturalHeight, 20)
   lolaStandingTex = processSprite(lolaStandImg)
@@ -154,7 +154,7 @@ export async function loadCharacterTextures(): Promise<void> {
     const d = ctx.getImageData(0, 0, fw, fh).data
     let mnX = fw, mxX = 0, mnY = fh, mxY = 0
     for (let j = 0; j < d.length; j += 4) {
-      if (d[j] + d[j+1] + d[j+2] >= 15) {
+      if (d[j] + d[j+1] + d[j+2] >= 6) {
         const px = (j/4) % fw, py = Math.floor(j/4/fw)
         if (px < mnX) mnX = px; if (px > mxX) mxX = px
         if (py < mnY) mnY = py; if (py > mxY) mxY = py
@@ -188,11 +188,11 @@ export async function loadCharacterTextures(): Promise<void> {
   }
 
   // Siep room poses (threshold 15)
-  siepRoomPoses['office'] = processSprite(siepOfficeImg, 0, 0, siepOfficeImg.naturalWidth, siepOfficeImg.naturalHeight, 15)
-  siepRoomPoses['calendar'] = processSprite(siepBoardImg, 0, 0, siepBoardImg.naturalWidth, siepBoardImg.naturalHeight, 15)
-  siepRoomPoses['tasks'] = processSprite(siepCorkImg, 0, 0, siepCorkImg.naturalWidth, siepCorkImg.naturalHeight, 15)
-  siepRoomPoses['emails'] = processSprite(siepMailImg, 0, 0, siepMailImg.naturalWidth, siepMailImg.naturalHeight, 15)
-  siepRoomPoses['briefings'] = processSprite(siepReadImg, 0, 0, siepReadImg.naturalWidth, siepReadImg.naturalHeight, 15)
+  siepRoomPoses['office'] = processSprite(siepOfficeImg, 0, 0, siepOfficeImg.naturalWidth, siepOfficeImg.naturalHeight, 6)
+  siepRoomPoses['calendar'] = processSprite(siepBoardImg, 0, 0, siepBoardImg.naturalWidth, siepBoardImg.naturalHeight, 6)
+  siepRoomPoses['tasks'] = processSprite(siepCorkImg, 0, 0, siepCorkImg.naturalWidth, siepCorkImg.naturalHeight, 6)
+  siepRoomPoses['emails'] = processSprite(siepMailImg, 0, 0, siepMailImg.naturalWidth, siepMailImg.naturalHeight, 6)
+  siepRoomPoses['briefings'] = processSprite(siepReadImg, 0, 0, siepReadImg.naturalWidth, siepReadImg.naturalHeight, 6)
 }
 
 export function getMansionTexture(): Texture { return mansionTex }

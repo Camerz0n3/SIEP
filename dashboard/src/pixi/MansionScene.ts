@@ -188,11 +188,11 @@ export class MansionScene {
     // === Siep walk + frame animation ===
     if (this.siepWalking && this.siepTarget.length > 0) {
       this.moveSiep()
-      // Cycle walk frames every 200ms
+      // Cycle walk frames every 250ms
       const walkFrames = getSiepWalkFrames()
       if (walkFrames.length > 0) {
         this.siepWalkTimer += dt
-        if (this.siepWalkTimer > 0.2) {
+        if (this.siepWalkTimer > 0.25) {
           this.siepWalkTimer = 0
           this.siepWalkFrame = (this.siepWalkFrame + 1) % walkFrames.length
           const sprite = this.siep.container.children[0] as Sprite
