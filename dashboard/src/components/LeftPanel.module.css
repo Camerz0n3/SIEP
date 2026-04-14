@@ -1,0 +1,174 @@
+.leftPanel {
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .leftPanel { display: none; }
+}
+
+.panelHeader {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.panelTitle {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.panelSub {
+  font-size: 9px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* ===== Mansion placeholder view ===== */
+.mansionView {
+  flex: 1;
+  position: relative;
+  background: var(--bg-void);
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-dark);
+  min-height: 260px;
+}
+
+.mansionCanvas {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.isoMansion {
+  position: relative;
+  width: 280px;
+  height: 260px;
+}
+
+.isoRoom {
+  position: absolute;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-mid);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.isoRoom:hover {
+  border-color: var(--gold);
+  background: var(--bg-elevated);
+  transform: scale(1.04);
+  z-index: 2;
+}
+
+.isoRoom.active {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(201, 169, 110, 0.15);
+}
+
+.roomIcon {
+  font-size: 18px;
+}
+
+.roomLabel {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--gold-dim);
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.hasNotification::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 10px;
+  height: 10px;
+  background: var(--red-bright);
+  border-radius: 50%;
+  border: 2px solid var(--bg-panel);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Room positions */
+.room_calendar  { left: 0; top: 0; width: 130px; height: 80px; }
+.room_office    { left: 60px; top: 90px; width: 160px; height: 90px; border-color: var(--gold-dim); }
+.room_tasks     { left: 150px; top: 0; width: 130px; height: 80px; }
+.room_emails    { left: 0; top: 170px; width: 130px; height: 80px; }
+.room_briefings { left: 150px; top: 170px; width: 130px; height: 80px; }
+
+/* ===== Room list ===== */
+.roomList {
+  padding: 8px;
+  overflow-y: auto;
+}
+
+.roomItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: 1px solid transparent;
+}
+
+.roomItem:hover {
+  background: var(--bg-surface);
+}
+
+.roomItem.active {
+  background: var(--bg-surface);
+  border-color: var(--border-mid);
+}
+
+.rIcon {
+  font-size: 16px;
+  width: 28px;
+  text-align: center;
+}
+
+.rInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.rName {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.rStatus {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.rBadge {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--red-tie);
+  color: #eee;
+  flex-shrink: 0;
+}
+
+.rBadge.ok {
+  background: var(--green-ok);
+}

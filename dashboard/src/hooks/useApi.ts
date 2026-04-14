@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 
-export function useApi<T>(url: string) {
+const API_URL = import.meta.env.VITE_API_URL || ''
+
+export function useApi<T>(path: string) {
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -8,7 +10,7 @@ export function useApi<T>(url: string) {
   const refetch = useCallback(() => {
     setLoading(true)
     setError(null)
-    fetch(url)
+    fetch(`${API_URL}${path}`)
       .then(res => {
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
         return res.json()
@@ -16,7 +18,7 @@ export function useApi<T>(url: string) {
       .then(setData)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
-  }, [url])
+  }, [path])
 
   useEffect(() => { refetch() }, [refetch])
 

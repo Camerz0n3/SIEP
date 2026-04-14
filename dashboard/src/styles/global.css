@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ===== THE DON — Design System ===== */
+:root {
+  /* Core palette */
+  --bg-void: #0a0806;
+  --bg-panel: #12100c;
+  --bg-panel-hover: #181510;
+  --bg-surface: #1e1a14;
+  --bg-elevated: #252018;
+  --border-dark: #2a2418;
+  --border-mid: #3a3228;
+
+  /* Gold */
+  --gold: #C9A96E;
+  --gold-dim: #8a7548;
+  --gold-bright: #e8c96e;
+
+  /* Accents */
+  --red-tie: #8B2020;
+  --red-bright: #c43030;
+  --green-ok: #2d6016;
+  --green-bright: #4a8a2a;
+  --blue-cold: #4a7a9a;
+  --blue-dim: #2a4a5a;
+  --whisky: #a0622a;
+
+  /* Text */
+  --text-primary: #d4cfc4;
+  --text-secondary: #8a8578;
+  --text-muted: #5a564e;
+
+  /* Fonts */
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body: 'DM Sans', sans-serif;
+
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-smooth: 0.3s ease;
+}
+
+/* ===== Time-of-day palette shifts ===== */
+[data-time="dawn"] {
+  --bg-void: #0c0907;
+  --bg-panel: #14120e;
+  --bg-surface: #201c16;
+  --gold: #d4b478;
+}
+
+[data-time="morning"] {
+  --bg-void: #0c0a08;
+  --bg-panel: #14120f;
+  --bg-surface: #211d17;
+}
+
+[data-time="afternoon"] {
+  --bg-void: #0c0a08;
+  --bg-panel: #14120f;
+  --bg-surface: #211d17;
+}
+
+[data-time="evening"] {
+  --bg-void: #090704;
+  --bg-panel: #110f0b;
+  --gold: #cca868;
+}
+
+/* night = default palette */
+/* late-night: even darker */
+[data-time="late-night"] {
+  --bg-void: #070503;
+  --bg-panel: #0e0c08;
+  --bg-surface: #1a1610;
+  --text-secondary: #7a756a;
+  --text-muted: #4a4640;
+}
+
+/* ===== Reset ===== */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100vh;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg-void); }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+
+/* ===== Ambient smoke overlay ===== */
+.ambient-smoke {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  z-index: 100;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(180,160,120,0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(180,160,120,0.015) 0%, transparent 50%);
+}
+
+/* ===== Utility ===== */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(201,169,110,0.15); }
+  50% { box-shadow: 0 0 16px rgba(201,169,110,0.3); }
+}
+
+@keyframes dot-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green-bright);
+  animation: pulse 2s ease-in-out infinite;
+  display: inline-block;
+}

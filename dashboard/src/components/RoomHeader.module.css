@@ -1,0 +1,50 @@
+.header {
+  padding: 20px 24px 16px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.backBtn {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-mid);
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+  margin-right: 4px;
+}
+
+.backBtn:hover {
+  border-color: var(--gold-dim);
+  color: var(--gold);
+}
+
+.icon {
+  font-size: 24px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+
+.sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}

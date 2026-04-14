@@ -1,0 +1,119 @@
+.topBar {
+  grid-column: 1 / -1;
+  background: var(--bg-panel);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-dark);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 4px;
+}
+
+.logoSub {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  margin-left: 8px;
+  font-family: var(--font-body);
+}
+
+.mansionStatus {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--green-bright);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 1px;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.guardStatus {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 1px;
+}
+
+.shield {
+  font-size: 12px;
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-dark);
+  border-radius: 4px;
+  background: var(--bg-surface);
+  font-size: 11px;
+}
+
+.pillLabel {
+  color: var(--text-muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pillValue {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.pillUrgent .pillValue {
+  color: var(--gold-bright);
+}
+
+.muteBtn {
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 8px;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.muteBtn:hover {
+  background: var(--bg-panel-hover);
+  border-color: var(--gold-dim);
+}
+
+.clock {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 2px;
+}
+
+/* Mobile: compact top bar */
+@media (max-width: 768px) {
+  .topBar { padding: 0 12px; }
+  .logo { font-size: 16px; letter-spacing: 2px; }
+  .logoSub { display: none; }
+  .mansionStatus { display: none; }
+  .guardStatus { display: none; }
+  .right { gap: 8px; }
+  .pill { padding: 4px 8px; font-size: 10px; }
+  .pillLabel { display: none; }
+}

@@ -1,0 +1,230 @@
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===== Siep filter summary ===== */
+.siepFilter {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dark);
+  border-left: 3px solid var(--blue-cold);
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.siepFilterAvatar {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.siepFilterText {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  font-style: italic;
+}
+
+.siepLabel {
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  color: var(--blue-cold);
+  letter-spacing: 1px;
+  font-style: normal;
+  vertical-align: middle;
+}
+
+/* ===== Tabs ===== */
+.tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  letter-spacing: 1px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-dark);
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.tab.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: var(--bg-surface);
+}
+
+.tab:hover:not(.active) {
+  border-color: var(--border-mid);
+  color: var(--text-secondary);
+}
+
+/* ===== Email list ===== */
+.emailList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.emailRow {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dark);
+  border-left: 3px solid var(--gold-dim);
+  border-radius: 6px;
+  transition: all 0.2s;
+  cursor: default;
+}
+
+.emailRow:hover {
+  background: var(--bg-panel-hover);
+  border-left-color: var(--gold);
+}
+
+.emailRow.important {
+  border-left-color: var(--red-tie);
+}
+
+.emailRow.important:hover {
+  border-left-color: var(--red-bright);
+}
+
+/* ===== Pixel art envelope ===== */
+.envelopeWrap {
+  flex-shrink: 0;
+  width: 32px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.envelope {
+  position: relative;
+  width: 28px;
+  height: 20px;
+  image-rendering: pixelated;
+}
+
+/* Sealed envelope (read) */
+.envelopeSealed .envelopeBody {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 28px;
+  height: 18px;
+  background: var(--bg-elevated);
+  border: 2px solid var(--border-mid);
+}
+
+.envelopeSealed .envelopeFlap {
+  position: absolute;
+  top: 0;
+  left: 4px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid var(--border-mid);
+}
+
+/* Open envelope (unread / important) */
+.envelopeOpen .envelopeBody {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 28px;
+  height: 18px;
+  background: var(--bg-surface);
+  border: 2px solid var(--gold-dim);
+}
+
+.envelopeOpen .envelopeFlap {
+  position: absolute;
+  top: -2px;
+  left: 4px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid var(--gold-dim);
+}
+
+/* Red wax seal on important emails */
+.waxSeal {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background: var(--red-tie);
+  border-radius: 50%;
+  border: 1px solid #6a1515;
+  box-shadow: 0 0 4px rgba(139, 32, 32, 0.4);
+}
+
+/* ===== Email content ===== */
+.emailContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.emailFrom {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.emailSubject {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.emailSnippet {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.emailTime {
+  font-family: var(--font-pixel);
+  font-size: 6px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.emptyState {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 40px 0;
+  font-style: italic;
+}

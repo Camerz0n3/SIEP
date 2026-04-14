@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import path from 'path';
 import { getEnv } from './config/env';
 import { whatsappRouter } from './webhook/whatsapp';
@@ -9,6 +9,15 @@ import { sendWhatsApp } from './services/twilio';
 import { clearOldContext } from './services/context';
 
 const app = express();
+
+// CORS for dashboard (allow any origin in dev, restrict in prod later)
+app.use((_req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  if (_req.method === 'OPTIONS') { res.sendStatus(204); return; }
+  next();
+});
 
 // Parse URL-encoded bodies (Twilio webhooks)
 app.use(express.urlencoded({ extended: false }));
@@ -57,6 +66,33 @@ app.post('/cron/check-reminders', async (_req, res) => {
   } catch (error) {
     console.error('Reminder check error:', error);
     res.status(500).json({ error: 'Failed to check reminders' });
+  }
+});
+
+// === Chat endpoint (dashboard comms panel) ===
+
+app.post('/api/chat', async (req: Request, res: Response) => {
+  try {
+    const { message } = req.body;
+    if (!message || !message.trim()) {
+      res.status(400).json({ error: 'Message is required' });
+      return;
+    }
+
+    const { parseIntent } = await import('./services/claude');
+    const { getConversationContext, saveMessage } = await import('./services/context');
+    const { routeIntent } = await import('./intents/router');
+
+    await saveMessage('user', message);
+    const context = await getConversationContext();
+    const parsed = await parseIntent(message, context);
+    const response = await routeIntent(parsed);
+    await saveMessage('assistant', response, parsed.intent);
+
+    res.json({ response, intent: parsed.intent, timestamp: new Date().toISOString() });
+  } catch (error) {
+    console.error('Chat endpoint error:', error);
+    res.status(500).json({ error: 'Hit a snag boss. Try again in a sec.' });
   }
 });
 

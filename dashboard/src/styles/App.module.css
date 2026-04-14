@@ -1,0 +1,88 @@
+/* ===== ZOOMED: Split layout (left nav + right room) ===== */
+.dashboard {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  grid-template-rows: 52px 1fr 200px;
+  height: 100vh;
+  gap: 1px;
+  background: var(--border-dark);
+}
+
+.rightPanel {
+  background: var(--bg-void);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ===== OVERVIEW: Mansion hero layout ===== */
+.overview {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 52px 1fr 200px;
+  height: 100vh;
+  gap: 1px;
+  background: var(--border-dark);
+}
+
+/* ===== MOBILE: Stack layout, no PixiJS ===== */
+@media (max-width: 768px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+    grid-template-rows: 44px 1fr;
+    gap: 0;
+    padding-bottom: 56px;
+  }
+
+  .rightPanel {
+    overflow-y: auto;
+  }
+
+  .overview {
+    grid-template-rows: 44px 1fr;
+    gap: 0;
+    padding-bottom: 56px;
+  }
+}
+
+/* Bottom tab bar wrapper — only visible on mobile */
+.mobileTabBar {
+  display: none;
+}
+@media (max-width: 768px) {
+  .mobileTabBar {
+    display: flex;
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--gold-dim);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    z-index: 200;
+  }
+  .mobileTab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 0;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    transition: color 0.2s;
+  }
+  .mobileTab:active,
+  .mobileTabActive {
+    color: var(--gold);
+  }
+  .mobileTabLabel {
+    font-family: var(--font-pixel);
+    font-size: 6px;
+    letter-spacing: 0.5px;
+  }
+}
