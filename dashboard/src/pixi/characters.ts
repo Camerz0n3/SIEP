@@ -113,10 +113,11 @@ export async function loadCharacterTextures(): Promise<void> {
     loadImage('/assets/sprites/siep-reading.png'),
   ])
 
-  cameronTex = processSprite(camImg)
-  siepTex = processSprite(siepImg)
-  guardTex = processSprite(guardImg, 0, 0, Math.floor(guardImg.naturalWidth / 2), guardImg.naturalHeight)
-  guardLeftTex = processSprite(guardLeftImg)
+  // Use lower threshold (15) for dark-clothed characters to preserve shoes/dark fabric
+  cameronTex = processSprite(camImg, 0, 0, camImg.naturalWidth, camImg.naturalHeight, 15)
+  siepTex = processSprite(siepImg, 0, 0, siepImg.naturalWidth, siepImg.naturalHeight, 15)
+  guardTex = processSprite(guardImg, 0, 0, Math.floor(guardImg.naturalWidth / 2), guardImg.naturalHeight, 15)
+  guardLeftTex = processSprite(guardLeftImg, 0, 0, guardLeftImg.naturalWidth, guardLeftImg.naturalHeight, 15)
   mansionTex = processSprite(mansionImg, 0, 0, mansionImg.naturalWidth, mansionImg.naturalHeight, 20)
   backgroundTex = processSprite(bgImg, 0, 0, bgImg.naturalWidth, bgImg.naturalHeight, 20)
   lolaStandingTex = processSprite(lolaStandImg)
@@ -133,20 +134,62 @@ export async function loadCharacterTextures(): Promise<void> {
     processSprite(lolaSatImg),   // 6 = Saturday (blue)
   )
 
-  // Siep walk: slice horizontal strip into 4 equal frames
+  // Siep walk: slice horizontal strip into 4 frames
+  // Process without trimming first to find the UNION bounding box across all frames,
+  // then trim all frames to the same size so he doesn't jump around
   siepWalkFrames.length = 0
   const fw = Math.floor(siepWalkImg.naturalWidth / 4)
   const fh = siepWalkImg.naturalHeight
+  // Pass 1: find max bounds across all frames
+  const frameBounds: { minX: number; maxX: number; minY: number; maxY: number }[] = []
+  let unionMinX = fw, unionMaxX = 0, unionMinY = fh, unionMaxY = 0
   for (let i = 0; i < 4; i++) {
-    siepWalkFrames.push(processSprite(siepWalkImg, i * fw, 0, fw, fh))
+    const tmp = document.createElement('canvas')
+    tmp.width = fw; tmp.height = fh
+    const ctx = tmp.getContext('2d')!
+    ctx.drawImage(siepWalkImg, i * fw, 0, fw, fh, 0, 0, fw, fh)
+    const d = ctx.getImageData(0, 0, fw, fh).data
+    let mnX = fw, mxX = 0, mnY = fh, mxY = 0
+    for (let j = 0; j < d.length; j += 4) {
+      if (d[j] + d[j+1] + d[j+2] >= 15) {
+        const px = (j/4) % fw, py = Math.floor(j/4/fw)
+        if (px < mnX) mnX = px; if (px > mxX) mxX = px
+        if (py < mnY) mnY = py; if (py > mxY) mxY = py
+      }
+    }
+    frameBounds.push({ minX: mnX, maxX: mxX, minY: mnY, maxY: mxY })
+    if (mnX < unionMinX) unionMinX = mnX
+    if (mxX > unionMaxX) unionMaxX = mxX
+    if (mnY < unionMinY) unionMinY = mnY
+    if (mxY > unionMaxY) unionMaxY = mxY
+  }
+  // Pass 2: crop all frames to the union bounding box
+  const uw = unionMaxX - unionMinX + 1, uh = unionMaxY - unionMinY + 1
+  for (let i = 0; i < 4; i++) {
+    const tmp = document.createElement('canvas')
+    tmp.width = fw; tmp.height = fh
+    const ctx = tmp.getContext('2d')!
+    ctx.drawImage(siepWalkImg, i * fw, 0, fw, fh, 0, 0, fw, fh)
+    const imgData = ctx.getImageData(0, 0, fw, fh)
+    const dd = imgData.data
+    for (let j = 0; j < dd.length; j += 4) {
+      if (dd[j] + dd[j+1] + dd[j+2] < 15) dd[j+3] = 0
+    }
+    ctx.putImageData(imgData, 0, 0)
+    const out = document.createElement('canvas')
+    out.width = uw; out.height = uh
+    out.getContext('2d')!.drawImage(tmp, unionMinX, unionMinY, uw, uh, 0, 0, uw, uh)
+    const tex = Texture.from(out)
+    tex.source.scaleMode = 'nearest'
+    siepWalkFrames.push(tex)
   }
 
-  // Siep room poses
-  siepRoomPoses['office'] = processSprite(siepOfficeImg)
-  siepRoomPoses['calendar'] = processSprite(siepBoardImg)
-  siepRoomPoses['tasks'] = processSprite(siepCorkImg)
-  siepRoomPoses['emails'] = processSprite(siepMailImg)
-  siepRoomPoses['briefings'] = processSprite(siepReadImg)
+  // Siep room poses (threshold 15)
+  siepRoomPoses['office'] = processSprite(siepOfficeImg, 0, 0, siepOfficeImg.naturalWidth, siepOfficeImg.naturalHeight, 15)
+  siepRoomPoses['calendar'] = processSprite(siepBoardImg, 0, 0, siepBoardImg.naturalWidth, siepBoardImg.naturalHeight, 15)
+  siepRoomPoses['tasks'] = processSprite(siepCorkImg, 0, 0, siepCorkImg.naturalWidth, siepCorkImg.naturalHeight, 15)
+  siepRoomPoses['emails'] = processSprite(siepMailImg, 0, 0, siepMailImg.naturalWidth, siepMailImg.naturalHeight, 15)
+  siepRoomPoses['briefings'] = processSprite(siepReadImg, 0, 0, siepReadImg.naturalWidth, siepReadImg.naturalHeight, 15)
 }
 
 export function getMansionTexture(): Texture { return mansionTex }
