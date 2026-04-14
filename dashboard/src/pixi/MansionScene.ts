@@ -32,7 +32,7 @@ const WALK_PATHS: Record<string, { col: number; row: number }[]> = {
   'office->briefings': [{ col: 10, row: 12 }, { col: 13, row: 13 }, { col: 13, row: 15 }, { col: 12, row: 17 }],
 }
 
-const PIXEL_LABEL = new TextStyle({ fontFamily: '"Press Start 2P", monospace', fontSize: 6, fill: 0x8a7548, align: 'center' })
+// Room labels removed — backdrop provides visuals
 const BUBBLE_STYLE = new TextStyle({ fontFamily: '"DM Sans", sans-serif', fontSize: 7, fill: 0x8a8578, wordWrap: true, wordWrapWidth: 120 })
 
 interface CharSprite { container: Container; col: number; row: number; phase: number }
@@ -104,7 +104,8 @@ export class MansionScene {
     this.createCharacters()
     this.createAmbientEffects()
     this.centerMansion()
-    this.setActiveRoom('office')
+    // Room outlines disabled — backdrop images don't align with the grid
+    // this.setActiveRoom('office')
 
     this.app.ticker.add(this.tick, this)
 
@@ -623,14 +624,12 @@ export class MansionScene {
   // === DRAWING ===
 
   private createCharacters() {
-    const oc = roomCenter('office')
-
-    // Cameron behind desk (boss chair position)
-    this.cameron = this.makeChar(oc.col - 0.5, oc.row + 0.5, drawCameron)
-    // Lola sits ON the desk — same depth as Cameron, slightly to his right, elevated
-    this.lola = this.makeChar(oc.col + 0.5, oc.row + 0.5, (c) => drawLola(c, new Date().getDay()), -10)
-    // Siep standing at attention, further right
-    this.siep = this.makeChar(oc.col + 2, oc.row + 1, drawSiep)
+    // Cameron sat in boss chair — very top of office, against back wall
+    this.cameron = this.makeChar(7.5, 7, drawCameron)
+    // Lola perched on desk edge — in front of Cameron's chair, slightly right
+    this.lola = this.makeChar(8, 7.5, (c) => drawLola(c, new Date().getDay()), -10)
+    // Siep standing beside the desk
+    this.siep = this.makeChar(9.5, 7.5, drawSiep)
     // Guards flanking the gate
     this.guard1 = this.makeChar(7, 21, drawGuard)
     this.guard2 = this.makeChar(9, 21, drawGuard)
@@ -713,18 +712,7 @@ export class MansionScene {
       hit.fill()
       container.addChild(hit)
 
-      // Glow outline
-      const glow = new Graphics()
-      this.drawRoomOutline(glow, room, 0x000000, 0)
-      container.addChild(glow)
-      this.glowGraphics.set(room.id, glow)
-
-      // Label
-      const { x: lx, y: ly } = toIso(room.col + room.w / 2, room.row + room.h - 0.5)
-      const label = new Text({ text: room.label, style: PIXEL_LABEL })
-      label.anchor.set(0.5)
-      label.position.set(lx, ly)
-      container.addChild(label)
+      // Labels and glow outlines disabled — backdrop images provide the visuals
 
       this.mansion.addChild(container)
     }

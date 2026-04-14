@@ -64,7 +64,7 @@ function processSprite(
 
 // === LOADED TEXTURES ===
 
-let cameronTex: Texture
+let cameronSittingTex: Texture
 let siepTex: Texture
 let guardTex: Texture
 let guardLeftTex: Texture
@@ -83,12 +83,13 @@ const siepRoomPoses: Record<string, Texture> = {}
 
 export async function loadCharacterTextures(): Promise<void> {
   const [
-    camImg, siepImg, guardImg, guardLeftImg, mansionImg, bgImg,
+    camImg, camSitImg, siepImg, guardImg, guardLeftImg, mansionImg, bgImg,
     lolaMonImg, lolaTueImg, lolaWedImg, lolaThuImg, lolaFriImg, lolaSatImg, lolaSunImg,
     lolaStandImg,
     siepWalkImg, siepOfficeImg, siepBoardImg, siepCorkImg, siepMailImg, siepReadImg,
   ] = await Promise.all([
     loadImage('/assets/sprites/cameron.png'),
+    loadImage('/assets/sprites/cameron-sitting.png'),
     loadImage('/assets/sprites/siep.png'),
     loadImage('/assets/sprites/guard.png'),
     loadImage('/assets/sprites/guard-left.png'),
@@ -114,7 +115,9 @@ export async function loadCharacterTextures(): Promise<void> {
   ])
 
   // Use lower threshold (15) for dark-clothed characters to preserve shoes/dark fabric
-  cameronTex = processSprite(camImg, 0, 0, camImg.naturalWidth, camImg.naturalHeight, 15)
+  // Cameron standing pose loaded but not currently used (sitting is default)
+  processSprite(camImg, 0, 0, camImg.naturalWidth, camImg.naturalHeight, 15)
+  cameronSittingTex = processSprite(camSitImg, 0, 0, camSitImg.naturalWidth, camSitImg.naturalHeight, 15)
   siepTex = processSprite(siepImg, 0, 0, siepImg.naturalWidth, siepImg.naturalHeight, 15)
   guardTex = processSprite(guardImg, 0, 0, Math.floor(guardImg.naturalWidth / 2), guardImg.naturalHeight, 15)
   guardLeftTex = processSprite(guardLeftImg, 0, 0, guardLeftImg.naturalWidth, guardLeftImg.naturalHeight, 15)
@@ -209,7 +212,7 @@ function charSprite(texture: Texture): Sprite {
 // === DRAW FUNCTIONS ===
 
 export function drawCameron(container: Container) {
-  container.addChild(charSprite(cameronTex))
+  container.addChild(charSprite(cameronSittingTex))
 }
 
 export function drawLola(container: Container, dayOfWeek: number) {
