@@ -2,7 +2,7 @@ import { Application, Container, Graphics, Sprite, Text, TextStyle } from 'pixi.
 import { toIso, TILE_H } from './iso'
 import { C } from './colors'
 // Procedural textures/furniture replaced by mansion.png sprite
-import { drawCameron, drawLola, drawSiep, drawGuard, loadCharacterTextures, getMansionTexture, getBackgroundTexture, getSiepWalkFrames, getSiepRoomPose, getGuardLeftTexture, getLolaStandingTexture } from './characters'
+import { drawCameron, drawLola, drawSiep, drawGuard, loadCharacterTextures, getMansionTexture, getBackgroundTexture, getSiepRoomPose, getGuardLeftTexture, getLolaStandingTexture } from './characters'
 import type { RoomId } from '../types'
 
 interface RoomDef {
@@ -53,8 +53,6 @@ export class MansionScene {
   private siepTarget: { col: number; row: number }[] = []
   private siepWalking = false
   private siepSpeed = 0.03
-  private siepWalkFrame = 0
-  private siepWalkTimer = 0
 
   private bubbleContainer: Container | null = null
   private bubbleTimer = 0
@@ -134,10 +132,10 @@ export class MansionScene {
 
     // Lola: gentle seated sway + leg dangle (slower, smaller amplitude)
     this.lola.phase += 0.015
-    const lolaPos = toIso(this.lola.col, this.lola.row)
+    const lolaPos = this.pctToPos(this.lola.col, this.lola.row)
     this.lola.container.position.set(
-      lolaPos.x + Math.sin(this.lola.phase * 0.7) * 0.3, // tiny side sway
-      lolaPos.y - 10 + Math.sin(this.lola.phase) * 0.6   // seated bob (smaller)
+      lolaPos.x + Math.sin(this.lola.phase * 0.7) * 0.3,
+      lolaPos.y - 6 + Math.sin(this.lola.phase) * 0.6
     )
     // Leg dangle: subtle rotation oscillation
     const sprite = this.lola.container.children[0]
@@ -145,10 +143,10 @@ export class MansionScene {
 
     // Guards: periodic lean/sway
     this.guard1.phase += 0.008
-    const g1Pos = toIso(this.guard1.col, this.guard1.row)
+    const g1Pos = this.pctToPos(this.guard1.col, this.guard1.row)
     this.guard1.container.position.set(g1Pos.x + Math.sin(this.guard1.phase) * 0.4, g1Pos.y + Math.sin(this.guard1.phase * 0.5) * 0.3)
     this.guard2.phase += 0.009
-    const g2Pos = toIso(this.guard2.col, this.guard2.row)
+    const g2Pos = this.pctToPos(this.guard2.col, this.guard2.row)
     this.guard2.container.position.set(g2Pos.x + Math.sin(this.guard2.phase + 1) * 0.4, g2Pos.y + Math.sin(this.guard2.phase * 0.5 + 1) * 0.3)
 
     // Guards: periodic head turn (swap sprite to left-looking variant)
@@ -185,24 +183,9 @@ export class MansionScene {
       ov.g.scale.set(0.9 + Math.sin(this.time * 4) * 0.15)
     }
 
-    // === Siep walk + frame animation ===
+    // === Siep walk (clean slide — walk frame animation disabled for now) ===
     if (this.siepWalking && this.siepTarget.length > 0) {
       this.moveSiep()
-      // Cycle walk frames every 250ms
-      const walkFrames = getSiepWalkFrames()
-      if (walkFrames.length > 0) {
-        this.siepWalkTimer += dt
-        if (this.siepWalkTimer > 0.25) {
-          this.siepWalkTimer = 0
-          this.siepWalkFrame = (this.siepWalkFrame + 1) % walkFrames.length
-          const sprite = this.siep.container.children[0] as Sprite
-          if (sprite && sprite.texture) {
-            const scale = 48 / walkFrames[this.siepWalkFrame].height
-            sprite.texture = walkFrames[this.siepWalkFrame]
-            sprite.scale.set(scale)
-          }
-        }
-      }
     }
 
     // === Smoke: Cameron's cigar (constant) + Lola's cigarette (periodic drags) ===
@@ -250,7 +233,7 @@ export class MansionScene {
 
   private bob(c: CharSprite) {
     c.phase += 0.02
-    const pos = toIso(c.col, c.row)
+    const pos = this.pctToPos(c.col, c.row)
     c.container.position.set(pos.x, pos.y + Math.sin(c.phase) * 1.2)
   }
 
@@ -375,7 +358,7 @@ export class MansionScene {
 
   private updateSmoke() {
     if (Math.random() < 0.025) {
-      const pos = toIso(this.cameron.col, this.cameron.row)
+      const pos = this.pctToPos(this.cameron.col, this.cameron.row)
       const p = new Graphics()
       p.fill({ color: 0xb4aa9b, alpha: 0.12 })
       p.circle(0, 0, 1 + Math.random() * 2)
@@ -413,7 +396,7 @@ export class MansionScene {
       }
       // Emit smoke from Lola's cigarette hand (left hand, offset from center)
       if (Math.random() < 0.06) {
-        const pos = toIso(this.lola.col, this.lola.row)
+        const pos = this.pctToPos(this.lola.col, this.lola.row)
         const p = new Graphics()
         p.fill({ color: 0xc0b8a8, alpha: 0.10 })
         p.circle(0, 0, 1 + Math.random() * 1.5)
@@ -431,7 +414,7 @@ export class MansionScene {
 
   // Lola blows a kiss — heart particles float up
   private lolaBlowKiss() {
-    const pos = toIso(this.lola.col, this.lola.row)
+    const pos = this.pctToPos(this.lola.col, this.lola.row)
     for (let i = 0; i < 5; i++) {
       setTimeout(() => {
         if (this.destroyed) return
@@ -480,28 +463,24 @@ export class MansionScene {
     const speed = 0.02 * this.app.ticker.deltaMS / 16
 
     if (this.lolaHugState === 'walking-to') {
-      // Walk toward Cameron
       const dx = this.cameron.col - this.lola.col
       const dy = this.cameron.row - this.lola.row
       const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist < 0.3) {
+      if (dist < 0.01) {
         this.lolaHugState = 'hugging'
-        this.lolaHugDuration = 3 + Math.random() * 2 // hug for 3-5 seconds
-        // Emit hearts
+        this.lolaHugDuration = 3 + Math.random() * 2
         this.lolaBlowKiss()
         return
       }
-      this.lola.col += (dx / dist) * speed
-      this.lola.row += (dy / dist) * speed
-      // Update position directly (skip normal seated animation)
-      const pos = toIso(this.lola.col, this.lola.row)
+      this.lola.col += (dx / dist) * speed * 0.3
+      this.lola.row += (dy / dist) * speed * 0.3
+      const pos = this.pctToPos(this.lola.col, this.lola.row)
       this.lola.container.position.set(pos.x, pos.y)
     }
 
     if (this.lolaHugState === 'hugging') {
       this.lolaHugDuration -= dt
-      // Gentle sway while hugging
-      const pos = toIso(this.lola.col, this.lola.row)
+      const pos = this.pctToPos(this.lola.col, this.lola.row)
       this.lola.container.position.set(pos.x + Math.sin(this.time * 2) * 0.5, pos.y)
       if (this.lolaHugDuration <= 0) {
         this.lolaHugState = 'walking-back'
@@ -512,7 +491,7 @@ export class MansionScene {
       const dx = this.lolaOrigCol - this.lola.col
       const dy = this.lolaOrigRow - this.lola.row
       const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist < 0.3) {
+      if (dist < 0.01) {
         // Arrived back — swap to sitting sprite
         this.lola.col = this.lolaOrigCol
         this.lola.row = this.lolaOrigRow
@@ -528,9 +507,9 @@ export class MansionScene {
         drawLola(container, new Date().getDay())
         return
       }
-      this.lola.col += (dx / dist) * speed
-      this.lola.row += (dy / dist) * speed
-      const pos = toIso(this.lola.col, this.lola.row)
+      this.lola.col += (dx / dist) * speed * 0.3
+      this.lola.row += (dy / dist) * speed * 0.3
+      const pos = this.pctToPos(this.lola.col, this.lola.row)
       this.lola.container.position.set(pos.x, pos.y)
     }
   }
@@ -623,34 +602,52 @@ export class MansionScene {
 
   // === DRAWING ===
 
+  // Reference to backdrop sprite for relative positioning
+  private backdropRef: { x: number; y: number; scaleX: number; w: number; h: number } = { x: 0, y: 0, scaleX: 1, w: 1, h: 1 }
+
   private createCharacters() {
-    // Cameron in boss chair — Board Room area (top-left, where desk/globe/laptop is in the backdrop)
-    this.cameron = this.makeChar(3.5, 1, drawCameron)
-    // Lola perched on desk edge — in front of Cameron's chair
-    this.lola = this.makeChar(4, 1.5, (c) => drawLola(c, new Date().getDay()), -10)
-    // Siep standing beside the desk
-    this.siep = this.makeChar(5.5, 1.5, drawSiep)
-    // Guards flanking the gate
-    this.guard1 = this.makeChar(7, 21, drawGuard)
-    this.guard2 = this.makeChar(9, 21, drawGuard)
+    // Positions as percentages of the backdrop image (0,0 = top-left, 1,1 = bottom-right)
+    // Cameron in boss chair — upper-left room, at the desk/chair
+    this.cameron = this.placeChar(0.38, 0.32, drawCameron)
+    // Lola on the desk — slightly right and forward of Cameron
+    this.lola = this.placeChar(0.42, 0.35, (c) => drawLola(c, new Date().getDay()), -6)
+    // Siep in the center hallway — standing on the checkered floor
+    this.siep = this.placeChar(0.50, 0.50, drawSiep)
+    // Guards at the bottom entrance
+    this.guard1 = this.placeChar(0.42, 0.82, drawGuard)
+    this.guard2 = this.placeChar(0.48, 0.82, drawGuard)
 
-    // Glow overlays: Cameron cigar tip, Siep chest LED
-    this.addGlowOverlay(this.cameron, 0xf09030, 8, -24, 2.5)  // orange cigar tip
-    this.addGlowOverlay(this.siep, 0x50b0f0, 0, -18, 3)       // blue chest LED
+    // Glow overlays
+    this.addGlowOverlay(this.cameron, 0xf09030, 8, -24, 2.5)
+    this.addGlowOverlay(this.siep, 0x50b0f0, 0, -18, 3)
 
-    // Lola click → blow kiss (heart particles)
+    // Lola click → blow kiss
     this.lola.container.eventMode = 'static'
     this.lola.container.cursor = 'pointer'
     this.lola.container.on('pointerdown', () => this.lolaBlowKiss())
   }
 
-  private makeChar(col: number, row: number, draw: (c: Container) => void, yOffset = 0): CharSprite {
+  // Place a character using percentage coordinates relative to the backdrop image
+  private placeChar(pctX: number, pctY: number, draw: (c: Container) => void, yOffset = 0): CharSprite {
+    const b = this.backdropRef
     const container = new Container()
     draw(container)
-    const { x, y } = toIso(col, row)
-    container.position.set(x, y + yOffset)
+    // Convert percentage to backdrop pixel position
+    const x = b.x + (pctX - 0.5) * b.w * b.scaleX
+    const y = b.y + (pctY - 0.5) * b.h * b.scaleX + yOffset
+    container.position.set(x, y)
     this.mansion.addChild(container)
-    return { container, col, row, phase: Math.random() * Math.PI * 2 }
+    // Store the percentage for animations (col=pctX, row=pctY)
+    return { container, col: pctX, row: pctY, phase: Math.random() * Math.PI * 2 }
+  }
+
+  // Convert percentage position to screen position (for animations)
+  private pctToPos(pctX: number, pctY: number): { x: number; y: number } {
+    const b = this.backdropRef
+    return {
+      x: b.x + (pctX - 0.5) * b.w * b.scaleX,
+      y: b.y + (pctY - 0.5) * b.h * b.scaleX,
+    }
   }
 
   private addGlowOverlay(char: CharSprite, color: number, offsetX: number, offsetY: number, radius = 3) {
@@ -689,6 +686,13 @@ export class MansionScene {
       ms.scale.set(targetW / mTex.width)
       ms.alpha = 0.85
       this.mansion.addChild(ms)
+    }
+
+    // Save backdrop reference for character positioning (use background sprite dims)
+    if (bgTex && bgTex.width > 1) {
+      const center = toIso(8, 11)
+      const s = (22 * 32) / bgTex.width
+      this.backdropRef = { x: center.x, y: center.y, scaleX: s, w: bgTex.width, h: bgTex.height }
     }
   }
 
