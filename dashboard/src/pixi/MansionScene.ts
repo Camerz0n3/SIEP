@@ -624,12 +624,12 @@ export class MansionScene {
   // === DRAWING ===
 
   private createCharacters() {
-    // Cameron sat in boss chair — very top of office, against back wall
-    this.cameron = this.makeChar(7.5, 7, drawCameron)
-    // Lola perched on desk edge — in front of Cameron's chair, slightly right
-    this.lola = this.makeChar(8, 7.5, (c) => drawLola(c, new Date().getDay()), -10)
-    // Siep standing beside the desk
-    this.siep = this.makeChar(9.5, 7.5, drawSiep)
+    // Cameron in boss chair — just right of the laptop on the desk
+    this.cameron = this.makeChar(6, 6.5, drawCameron)
+    // Lola perched on desk edge — in front of Cameron, on the desk
+    this.lola = this.makeChar(6.5, 7, (c) => drawLola(c, new Date().getDay()), -10)
+    // Siep standing to the right of the desk
+    this.siep = this.makeChar(8, 7, drawSiep)
     // Guards flanking the gate
     this.guard1 = this.makeChar(7, 21, drawGuard)
     this.guard2 = this.makeChar(9, 21, drawGuard)
