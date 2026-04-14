@@ -327,6 +327,9 @@ export class MansionScene {
     bg.fill()
     bubble.addChild(bg, txt)
     bubble.position.set(-w / 2, -40)
+    bubble.eventMode = 'static'
+    bubble.cursor = 'pointer'
+    bubble.on('pointerdown', () => this.dismissBubble())
     this.siep.container.addChild(bubble)
     this.bubbleContainer = bubble
     this.bubbleTimer = duration
@@ -607,8 +610,8 @@ export class MansionScene {
 
   private createCharacters() {
     // Positions as percentages of the backdrop image (0,0 = top-left, 1,1 = bottom-right)
-    // Cameron in boss chair — upper-left room, at the desk/chair
-    this.cameron = this.placeChar(0.38, 0.32, drawCameron)
+    // Cameron in boss chair — behind the desk, to the right of the laptop
+    this.cameron = this.placeChar(0.44, 0.30, drawCameron)
     // Lola on the desk — slightly right and forward of Cameron
     this.lola = this.placeChar(0.42, 0.35, (c) => drawLola(c, new Date().getDay()), -6)
     // Siep in the center hallway — standing on the checkered floor
