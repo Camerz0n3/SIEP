@@ -1,3 +1,6 @@
+[[volumes]]
+mount = "/data"
+
 [build]
 builder = "nixpacks"
 buildCommand = "npm install && npm run build && cd dashboard && npm install && npm run build"

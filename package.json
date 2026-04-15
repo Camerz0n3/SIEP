@@ -15,6 +15,7 @@
   "type": "commonjs",
   "dependencies": {
     "@date-fns/tz": "^1.4.1",
+    "better-sqlite3": "^12.9.0",
     "chrono-node": "^2.9.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
@@ -25,6 +26,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
     "@types/node": "^25.6.0",
     "tsx": "^4.21.0",

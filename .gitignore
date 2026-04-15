@@ -4,3 +4,4 @@ dist/
 *.log
 dashboard/node_modules/
 dashboard/dist/
+data/
