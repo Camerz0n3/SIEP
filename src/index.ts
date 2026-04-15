@@ -193,6 +193,17 @@ app.get('/api/weather', async (_req, res) => {
   }
 });
 
+// Direct calendar event creation (bypasses LLM)
+app.post('/api/calendar/create', async (req, res) => {
+  try {
+    const { createEvent } = await import('./services/calendar');
+    const event = await createEvent(req.body);
+    res.json(event);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create event' });
+  }
+});
+
 // Bulk seed contacts
 app.post('/api/contacts/bulk', async (req, res) => {
   try {
