@@ -2,7 +2,7 @@ import { Application, Container, Graphics, Rectangle, Sprite, Text, TextStyle, T
 import { toIso, TILE_H } from './iso'
 import { C } from './colors'
 // Procedural textures/furniture replaced by mansion.png sprite
-import { drawCameron, drawLola, drawSiep, drawGuard, loadCharacterTextures, getBackgroundTexture, getSiepRoomPose, getGuardLeftTexture, getLolaStandingTexture } from './characters'
+import { drawCameron, drawLola, drawSiep, drawGuard, loadCharacterTextures, getBackgroundTexture, getSiepRoomPose, getLolaStandingTexture } from './characters'
 import type { RoomId } from '../types'
 
 interface RoomDef {
@@ -67,9 +67,6 @@ export class MansionScene {
   private lolaIdleTimer = 12 // seconds until next idle action
   private lolaActionTimer = 0
 
-  private guardLookTimer = 8 // seconds between head turns
-  private guardLooking = false
-  private guardLookDuration = 0
 
   // Lola hug: every ~5 min she walks to Cameron and back
   private lolaHugTimer = 120 + Math.random() * 180 // first hug in 2-5 min
@@ -149,33 +146,6 @@ export class MansionScene {
     const g2Pos = this.pctToPos(this.guard2.col, this.guard2.row)
     this.guard2.container.position.set(g2Pos.x + Math.sin(this.guard2.phase + 1) * 0.4, g2Pos.y + Math.sin(this.guard2.phase * 0.5 + 1) * 0.3)
 
-    // Guards: periodic head turn (swap sprite to left-looking variant)
-    this.guardLookTimer -= dt
-    if (!this.guardLooking && this.guardLookTimer <= 0) {
-      this.guardLooking = true
-      this.guardLookDuration = 2 + Math.random()
-      // Swap guard1 sprite to left-looking
-      const guardLeftTex = getGuardLeftTexture()
-      if (guardLeftTex && guardLeftTex.width > 1) {
-        const gs = this.guard1.container.children[0] as Sprite
-        if (gs) { gs.texture = guardLeftTex; gs.scale.set(48 / guardLeftTex.height) }
-      }
-    }
-    if (this.guardLooking) {
-      this.guardLookDuration -= dt
-      if (this.guardLookDuration <= 0) {
-        this.guardLooking = false
-        this.guardLookTimer = 8 + Math.random() * 7
-        // Swap back to forward-facing
-        const container = this.guard1.container
-        if (container.children.length > 0) {
-          const old = container.children[0]
-          container.removeChildAt(0)
-          old.destroy()
-        }
-        drawGuard(container)
-      }
-    }
 
     // === Glow overlays: pulse ===
     for (const ov of this.glowOverlays) {
@@ -625,9 +595,9 @@ export class MansionScene {
     this.lola = this.placeChar(0.42, 0.35, (c) => drawLola(c, new Date().getDay()), -6)
     // Siep in the center hallway — standing on the checkered floor
     this.siep = this.placeChar(0.50, 0.50, drawSiep)
-    // Guards at the bottom entrance
-    this.guard1 = this.placeChar(0.42, 0.82, drawGuard)
-    this.guard2 = this.placeChar(0.48, 0.82, drawGuard)
+    // Guards flanking the driveway near the car
+    this.guard1 = this.placeChar(0.22, 0.47, drawGuard)
+    this.guard2 = this.placeChar(0.17, 0.50, drawGuard)
 
     // Glow overlays
     this.addGlowOverlay(this.cameron, 0xf09030, 8, -24, 2.5)

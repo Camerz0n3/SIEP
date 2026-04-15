@@ -160,7 +160,6 @@ function processSprite(
 let cameronSittingTex: Texture
 let siepTex: Texture
 let guardTex: Texture
-let guardLeftTex: Texture
 let mansionTex: Texture
 let backgroundTex: Texture
 let lolaStandingTex: Texture
@@ -176,7 +175,7 @@ const siepRoomPoses: Record<string, Texture> = {}
 
 export async function loadCharacterTextures(): Promise<void> {
   const [
-    , camSitImg, siepImg, guardImg, guardLeftImg, mansionImg, bgImg,
+    , camSitImg, siepImg, guardImg, , mansionImg, bgImg,
     lolaMonImg, lolaTueImg, lolaWedImg, lolaThuImg, lolaFriImg, lolaSatImg, lolaSunImg,
     lolaStandImg,
     siepWalkImg, siepOfficeImg, siepBoardImg, siepCorkImg, siepMailImg, siepReadImg,
@@ -207,11 +206,10 @@ export async function loadCharacterTextures(): Promise<void> {
     loadImage('/assets/sprites/siep-reading.png'),
   ])
 
-  // Flood-fill background removal preserves dark clothing — threshold can be higher
+  // Flood-fill background removal — low threshold (6) for dark-suited characters
   cameronSittingTex = processSprite(camSitImg)
-  siepTex = processSprite(siepImg)
-  guardTex = processSprite(guardImg, 0, 0, Math.floor(guardImg.naturalWidth * 0.42))
-  guardLeftTex = processSprite(guardLeftImg)
+  siepTex = processSprite(siepImg, 0, 0, siepImg.naturalWidth, siepImg.naturalHeight, 6)
+  guardTex = processSprite(guardImg, 0, 0, Math.floor(guardImg.naturalWidth * 0.42), guardImg.naturalHeight, 6)
   mansionTex = processSprite(mansionImg, 0, 0, mansionImg.naturalWidth, mansionImg.naturalHeight, 20)
   backgroundTex = processSprite(bgImg, 0, 0, bgImg.naturalWidth, bgImg.naturalHeight, 20)
   lolaStandingTex = processSprite(lolaStandImg)
@@ -291,7 +289,6 @@ export function getBackgroundTexture(): Texture { return backgroundTex }
 export function getSiepWalkFrames(): Texture[] { return siepWalkFrames }
 export function getSiepRoomPose(roomId: string): Texture | null { return siepRoomPoses[roomId] || null }
 export function getLolaStandingTexture(): Texture { return lolaStandingTex }
-export function getGuardLeftTexture(): Texture { return guardLeftTex }
 
 function charSprite(texture: Texture): Sprite {
   const s = new Sprite(texture)
