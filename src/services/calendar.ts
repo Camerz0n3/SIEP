@@ -37,11 +37,10 @@ export async function createEvent(params: {
   const cal = getCalendar();
   const duration = params.duration_minutes || DEFAULT_EVENT_DURATION_MINUTES;
 
-  // Parse as local time in the target timezone (not UTC)
-  const startDate = new TZDate(
-    `${params.date}T${params.time}:00`,
-    TIMEZONE
-  );
+  // Parse as local time in Zurich — use component constructor to avoid UTC interpretation
+  const [year, month, day] = params.date.split('-').map(Number);
+  const [hour, minute] = params.time.split(':').map(Number);
+  const startDate = new TZDate(year, month - 1, day, hour, minute, 0, TIMEZONE);
   const endDate = addMinutes(startDate, duration);
 
   const event: calendar_v3.Schema$Event = {
