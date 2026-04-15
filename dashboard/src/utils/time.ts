@@ -1,8 +1,15 @@
 export function formatTime(iso: string | undefined | null): string {
   if (!iso) return '--:--'
+  // Extract time directly from ISO string to preserve original timezone
+  const match = iso.match(/T(\d{2}):(\d{2})/)
+  if (match) return `${match[1]}:${match[2]}`
   const d = new Date(iso)
   if (isNaN(d.getTime())) return '--:--'
   return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0')
+}
+
+export function formatTimeRange(startIso: string | undefined | null, endIso: string | undefined | null): string {
+  return `${formatTime(startIso)} - ${formatTime(endIso)}`
 }
 
 export function formatDate(iso: string | undefined | null): string {

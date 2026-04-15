@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { RoomHeader } from '../components/RoomHeader'
 import { useAutoRefresh } from '../hooks/useAutoRefresh'
-import { formatTime } from '../utils/time'
+import { formatTimeRange } from '../utils/time'
 import type { CalendarEvent } from '../types'
 import styles from './Calendar.module.css'
 
@@ -103,7 +103,7 @@ export function Calendar() {
                           key={eventKey}
                           className={`${styles.eventCard} ${work ? styles.work : styles.personal}`}
                         >
-                          <div className={styles.eventTime}>{formatTime(evt.start)}</div>
+                          <div className={styles.eventTime}>{formatTimeRange(evt.start, evt.end)}</div>
                           <div className={styles.eventTitle}>{evt.title}</div>
                           {evt.location && <div className={styles.eventLoc}>{evt.location}</div>}
                         </div>
