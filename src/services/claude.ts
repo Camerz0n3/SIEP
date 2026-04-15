@@ -64,7 +64,7 @@ Respond ONLY with valid JSON, no other text:
 {
   "intent": "add_event" | "query_schedule" | "edit_event" | "cancel_event" | "add_task" | "list_tasks" | "complete_task" | "add_date" | "check_emails" | "draft_reply" | "send_reply" | "relay_message" | "book_something" | "weather" | "general_chat",
   "params": {
-    // For add_event: { "title": string, "date": "YYYY-MM-DD", "time": "HH:MM", "location": string?, "duration_minutes": number?, "reminder_minutes_before": number? }
+    // For add_event: { "title": string, "date": "YYYY-MM-DD", "time": "HH:MM" (MUST be the START time, not end time), "location": string?, "duration_minutes": number? (calculate from start-to-end if both given, e.g. "18:30 to 20:30" means time="18:30" duration_minutes=120), "reminder_minutes_before": number? }
     // For query_schedule: { "date": "YYYY-MM-DD", "range": "today" | "tomorrow" | "week" }
     // For edit_event: { "original_title": string, "date": "YYYY-MM-DD"?, "new_time": "HH:MM"?, "new_title": string?, "new_location": string? }
     // For cancel_event: { "title": string, "date": "YYYY-MM-DD"? }
