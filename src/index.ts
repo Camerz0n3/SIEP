@@ -204,6 +204,17 @@ app.post('/api/calendar/create', async (req, res) => {
   }
 });
 
+// Delete calendar event by ID
+app.delete('/api/calendar/:id', async (req, res) => {
+  try {
+    const { deleteEvent } = await import('./services/calendar');
+    await deleteEvent(req.params.id);
+    res.json({ deleted: req.params.id });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
 // Bulk seed contacts
 app.post('/api/contacts/bulk', async (req, res) => {
   try {
