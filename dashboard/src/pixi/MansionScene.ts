@@ -1,8 +1,8 @@
-import { Application, Container, Graphics, Sprite, Text, TextStyle } from 'pixi.js'
+import { Application, Container, Graphics, Rectangle, Sprite, Text, TextStyle, Texture } from 'pixi.js'
 import { toIso, TILE_H } from './iso'
 import { C } from './colors'
 // Procedural textures/furniture replaced by mansion.png sprite
-import { drawCameron, drawLola, drawSiep, drawGuard, loadCharacterTextures, getMansionTexture, getBackgroundTexture, getSiepRoomPose, getGuardLeftTexture, getLolaStandingTexture } from './characters'
+import { drawCameron, drawLola, drawSiep, drawGuard, loadCharacterTextures, getBackgroundTexture, getSiepRoomPose, getGuardLeftTexture, getLolaStandingTexture } from './characters'
 import type { RoomId } from '../types'
 
 interface RoomDef {
@@ -610,8 +610,17 @@ export class MansionScene {
 
   private createCharacters() {
     // Positions as percentages of the backdrop image (0,0 = top-left, 1,1 = bottom-right)
-    // Cameron in boss chair — behind the desk, to the right of the laptop
-    this.cameron = this.placeChar(0.44, 0.30, drawCameron)
+    // Cameron sitting (sprite includes chair) on the backdrop's desk chair
+    // Legs cropped so they appear under the desk — keep original scale for correct proportions
+    this.cameron = this.placeChar(0.50, 0.22, (c) => {
+      drawCameron(c)
+      const s = c.children[0] as Sprite
+      if (s && s.texture.width > 1) {
+        const tex = s.texture
+        const cropH = Math.floor(tex.source.height * 0.80)
+        s.texture = new Texture({ source: tex.source, frame: new Rectangle(0, 0, tex.source.width, cropH) })
+      }
+    })
     // Lola on the desk — slightly right and forward of Cameron
     this.lola = this.placeChar(0.42, 0.35, (c) => drawLola(c, new Date().getDay()), -6)
     // Siep in the center hallway — standing on the checkered floor
@@ -676,19 +685,6 @@ export class MansionScene {
       const targetW = 22 * 32
       bg.scale.set(targetW / bgTex.width)
       this.mansion.addChild(bg)
-    }
-
-    // Mansion interior sprite layered on top for room detail
-    const mTex = getMansionTexture()
-    if (mTex && mTex.width > 1) {
-      const ms = new Sprite(mTex)
-      ms.anchor.set(0.5, 0.5)
-      const gridCenter = toIso(8, 10)
-      ms.position.set(gridCenter.x, gridCenter.y - TILE_H)
-      const targetW = 18 * 32
-      ms.scale.set(targetW / mTex.width)
-      ms.alpha = 0.85
-      this.mansion.addChild(ms)
     }
 
     // Save backdrop reference for character positioning (use background sprite dims)

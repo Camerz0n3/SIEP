@@ -17,14 +17,16 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-// Remove near-black pixels (background), then trim to tight bounding box
+// Remove background using edge-connected flood fill — only dark pixels reachable
+// from the image border are removed, preserving dark clothing/hair inside characters
 function processSprite(
   img: HTMLImageElement,
   cropX = 0,
   cropY = 0,
   cropW = img.naturalWidth,
   cropH = img.naturalHeight,
-  threshold = 4,
+  threshold = 15,
+  stripBrown = false,
 ): Texture {
   const tmp = document.createElement('canvas')
   tmp.width = cropW
@@ -34,18 +36,109 @@ function processSprite(
 
   const imgData = ctx.getImageData(0, 0, cropW, cropH)
   const d = imgData.data
+  const total = cropW * cropH
+
+  // Step 1: Mark dark pixels (candidates for background)
+  const isDark = new Uint8Array(total)
+  for (let i = 0; i < total; i++) {
+    const idx = i * 4
+    if (d[idx] + d[idx + 1] + d[idx + 2] < threshold) isDark[i] = 1
+  }
+
+  // Step 2: Flood-fill from all 4 edges to find background
+  const isBg = new Uint8Array(total)
+  const stack: number[] = []
+  for (let x = 0; x < cropW; x++) {
+    const top = x
+    if (isDark[top]) { isBg[top] = 1; stack.push(top) }
+    const bot = (cropH - 1) * cropW + x
+    if (isDark[bot]) { isBg[bot] = 1; stack.push(bot) }
+  }
+  for (let y = 1; y < cropH - 1; y++) {
+    const left = y * cropW
+    if (isDark[left]) { isBg[left] = 1; stack.push(left) }
+    const right = y * cropW + cropW - 1
+    if (isDark[right]) { isBg[right] = 1; stack.push(right) }
+  }
+  while (stack.length > 0) {
+    const pos = stack.pop()!
+    const x = pos % cropW
+    const y = (pos - x) / cropW
+    if (y > 0)          { const n = pos - cropW;     if (isDark[n] && !isBg[n]) { isBg[n] = 1; stack.push(n) } }
+    if (y < cropH - 1)  { const n = pos + cropW;     if (isDark[n] && !isBg[n]) { isBg[n] = 1; stack.push(n) } }
+    if (x > 0)          { const n = pos - 1;         if (isDark[n] && !isBg[n]) { isBg[n] = 1; stack.push(n) } }
+    if (x < cropW - 1)  { const n = pos + 1;         if (isDark[n] && !isBg[n]) { isBg[n] = 1; stack.push(n) } }
+  }
+
+  // Step 3: Make only background pixels transparent, find content bounding box
   let minX = cropW, maxX = 0, minY = cropH, maxY = 0
-  for (let i = 0; i < d.length; i += 4) {
-    if (d[i] + d[i + 1] + d[i + 2] < threshold) {
-      d[i + 3] = 0
+  for (let i = 0; i < total; i++) {
+    if (isBg[i]) {
+      d[i * 4 + 3] = 0
     } else {
-      const px = (i / 4) % cropW
-      const py = Math.floor(i / 4 / cropW)
-      if (px < minX) minX = px
-      if (px > maxX) maxX = px
-      if (py < minY) minY = py
-      if (py > maxY) maxY = py
+      const x = i % cropW
+      const y = (i - x) / cropW
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
     }
+  }
+
+  // Step 4 (optional): Strip brown/wood chair pixels via flood-fill from edges
+  if (stripBrown) {
+    const isBrown = new Uint8Array(total)
+    for (let i = 0; i < total; i++) {
+      if (d[i * 4 + 3] === 0) continue // already transparent
+      const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2]
+      // Dark leather brown only: R 60-140, G 30-90, B < 50, not skin (skin has higher G relative to R)
+      if (r >= 55 && r <= 150 && g >= 25 && g <= 90 && b < 55 && g < r * 0.7 && r - b > 30) isBrown[i] = 1
+    }
+    // Flood-fill brown from edges to remove chair but not brown on the body
+    const isBrownBg = new Uint8Array(total)
+    const brownStack: number[] = []
+    for (let x = 0; x < cropW; x++) {
+      if (isBrown[x]) { isBrownBg[x] = 1; brownStack.push(x) }
+      const bot = (cropH - 1) * cropW + x
+      if (isBrown[bot]) { isBrownBg[bot] = 1; brownStack.push(bot) }
+    }
+    for (let y = 1; y < cropH - 1; y++) {
+      const left = y * cropW
+      if (isBrown[left]) { isBrownBg[left] = 1; brownStack.push(left) }
+      const right = y * cropW + cropW - 1
+      if (isBrown[right]) { isBrownBg[right] = 1; brownStack.push(right) }
+    }
+    // Also seed from any pixel adjacent to already-transparent background
+    for (let i = 0; i < total; i++) {
+      if (!isBrown[i] || isBrownBg[i]) continue
+      const x = i % cropW, y = (i - x) / cropW
+      const neighbors = []
+      if (y > 0) neighbors.push(i - cropW)
+      if (y < cropH - 1) neighbors.push(i + cropW)
+      if (x > 0) neighbors.push(i - 1)
+      if (x < cropW - 1) neighbors.push(i + 1)
+      for (const n of neighbors) {
+        if (d[n * 4 + 3] === 0) { isBrownBg[i] = 1; brownStack.push(i); break }
+      }
+    }
+    while (brownStack.length > 0) {
+      const pos = brownStack.pop()!
+      const x = pos % cropW, y = (pos - x) / cropW
+      if (y > 0)         { const n = pos - cropW;  if (isBrown[n] && !isBrownBg[n]) { isBrownBg[n] = 1; brownStack.push(n) } }
+      if (y < cropH - 1) { const n = pos + cropW;  if (isBrown[n] && !isBrownBg[n]) { isBrownBg[n] = 1; brownStack.push(n) } }
+      if (x > 0)         { const n = pos - 1;      if (isBrown[n] && !isBrownBg[n]) { isBrownBg[n] = 1; brownStack.push(n) } }
+      if (x < cropW - 1) { const n = pos + 1;      if (isBrown[n] && !isBrownBg[n]) { isBrownBg[n] = 1; brownStack.push(n) } }
+    }
+    // Recalculate bounds after removing brown
+    minX = cropW; maxX = 0; minY = cropH; maxY = 0
+    for (let i = 0; i < total; i++) {
+      if (isBrownBg[i]) { d[i * 4 + 3] = 0; continue }
+      if (d[i * 4 + 3] === 0) continue
+      const x = i % cropW, y = (i - x) / cropW
+      if (x < minX) minX = x; if (x > maxX) maxX = x
+      if (y < minY) minY = y; if (y > maxY) maxY = y
+    }
+    ctx.putImageData(imgData, 0, 0)
   }
   ctx.putImageData(imgData, 0, 0)
 
@@ -83,7 +176,7 @@ const siepRoomPoses: Record<string, Texture> = {}
 
 export async function loadCharacterTextures(): Promise<void> {
   const [
-    camImg, camSitImg, siepImg, guardImg, guardLeftImg, mansionImg, bgImg,
+    , camSitImg, siepImg, guardImg, guardLeftImg, mansionImg, bgImg,
     lolaMonImg, lolaTueImg, lolaWedImg, lolaThuImg, lolaFriImg, lolaSatImg, lolaSunImg,
     lolaStandImg,
     siepWalkImg, siepOfficeImg, siepBoardImg, siepCorkImg, siepMailImg, siepReadImg,
@@ -114,13 +207,11 @@ export async function loadCharacterTextures(): Promise<void> {
     loadImage('/assets/sprites/siep-reading.png'),
   ])
 
-  // Use lower threshold (15) for dark-clothed characters to preserve shoes/dark fabric
-  // Cameron standing pose loaded but not currently used (sitting is default)
-  processSprite(camImg, 0, 0, camImg.naturalWidth, camImg.naturalHeight, 4)
-  cameronSittingTex = processSprite(camSitImg, 0, 0, camSitImg.naturalWidth, camSitImg.naturalHeight, 4)
-  siepTex = processSprite(siepImg, 0, 0, siepImg.naturalWidth, siepImg.naturalHeight, 4)
-  guardTex = processSprite(guardImg, 0, 0, Math.floor(guardImg.naturalWidth / 2), guardImg.naturalHeight, 4)
-  guardLeftTex = processSprite(guardLeftImg, 0, 0, guardLeftImg.naturalWidth, guardLeftImg.naturalHeight, 4)
+  // Flood-fill background removal preserves dark clothing — threshold can be higher
+  cameronSittingTex = processSprite(camSitImg)
+  siepTex = processSprite(siepImg)
+  guardTex = processSprite(guardImg, 0, 0, Math.floor(guardImg.naturalWidth * 0.42))
+  guardLeftTex = processSprite(guardLeftImg)
   mansionTex = processSprite(mansionImg, 0, 0, mansionImg.naturalWidth, mansionImg.naturalHeight, 20)
   backgroundTex = processSprite(bgImg, 0, 0, bgImg.naturalWidth, bgImg.naturalHeight, 20)
   lolaStandingTex = processSprite(lolaStandImg)
@@ -188,11 +279,11 @@ export async function loadCharacterTextures(): Promise<void> {
   }
 
   // Siep room poses (threshold 15)
-  siepRoomPoses['office'] = processSprite(siepOfficeImg, 0, 0, siepOfficeImg.naturalWidth, siepOfficeImg.naturalHeight, 4)
-  siepRoomPoses['calendar'] = processSprite(siepBoardImg, 0, 0, siepBoardImg.naturalWidth, siepBoardImg.naturalHeight, 4)
-  siepRoomPoses['tasks'] = processSprite(siepCorkImg, 0, 0, siepCorkImg.naturalWidth, siepCorkImg.naturalHeight, 4)
-  siepRoomPoses['emails'] = processSprite(siepMailImg, 0, 0, siepMailImg.naturalWidth, siepMailImg.naturalHeight, 4)
-  siepRoomPoses['briefings'] = processSprite(siepReadImg, 0, 0, siepReadImg.naturalWidth, siepReadImg.naturalHeight, 4)
+  siepRoomPoses['office'] = processSprite(siepOfficeImg)
+  siepRoomPoses['calendar'] = processSprite(siepBoardImg)
+  siepRoomPoses['tasks'] = processSprite(siepCorkImg)
+  siepRoomPoses['emails'] = processSprite(siepMailImg)
+  siepRoomPoses['briefings'] = processSprite(siepReadImg)
 }
 
 export function getMansionTexture(): Texture { return mansionTex }
