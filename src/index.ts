@@ -193,6 +193,22 @@ app.get('/api/weather', async (_req, res) => {
   }
 });
 
+// Bulk seed contacts
+app.post('/api/contacts/bulk', async (req, res) => {
+  try {
+    const { db, generateId } = await import('./services/database');
+    const contacts = req.body.contacts as { name: string; phone?: string; email?: string }[];
+    let count = 0;
+    for (const c of contacts) {
+      db.insert('contacts', { id: generateId(), name: c.name, phone: c.phone || null, email: c.email || null });
+      count++;
+    }
+    res.json({ inserted: count });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to seed contacts' });
+  }
+});
+
 // Serve dashboard static files
 app.use(express.static(path.join(__dirname, '../dashboard/dist')));
 
