@@ -37,8 +37,9 @@ export async function createEvent(params: {
   const cal = getCalendar();
   const duration = params.duration_minutes || DEFAULT_EVENT_DURATION_MINUTES;
 
+  // Parse as local time in the target timezone (not UTC)
   const startDate = new TZDate(
-    new Date(`${params.date}T${params.time}:00`),
+    `${params.date}T${params.time}:00`,
     TIMEZONE
   );
   const endDate = addMinutes(startDate, duration);
