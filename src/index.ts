@@ -14,7 +14,7 @@ const app = express();
 app.use((_req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   if (_req.method === 'OPTIONS') { res.sendStatus(204); return; }
   next();
 });
@@ -212,6 +212,28 @@ app.delete('/api/calendar/:id', async (req, res) => {
     res.json({ deleted: req.params.id });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
+// Important dates
+app.get('/api/dates', async (_req, res) => {
+  try {
+    const { getAllDates } = await import('./services/dates');
+    const dates = await getAllDates();
+    res.json(dates);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch dates' });
+  }
+});
+
+app.get('/api/dates/upcoming', async (req, res) => {
+  try {
+    const { getUpcomingDates } = await import('./services/dates');
+    const days = parseInt(req.query.days as string) || 30;
+    const dates = await getUpcomingDates(days);
+    res.json(dates);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch upcoming dates' });
   }
 });
 

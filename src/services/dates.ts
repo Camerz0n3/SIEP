@@ -37,6 +37,7 @@ export async function addImportantDate(params: {
 export async function getUpcomingDates(daysAhead: number = 7): Promise<ImportantDate[]> {
   const dates: ImportantDate[] = [];
   const now = new Date();
+  const currentYear = now.getFullYear();
 
   for (let i = 0; i <= daysAhead; i++) {
     const checkDate = new Date(now);
@@ -46,12 +47,17 @@ export async function getUpcomingDates(daysAhead: number = 7): Promise<Important
 
     const rows = db.findWhere<ImportantDate>(
       'important_dates',
-      (d) => d.date_month === month && d.date_day === day
+      (d) => d.date_month === month && d.date_day === day &&
+        (d.year == null || d.year === currentYear)
     );
     dates.push(...rows);
   }
 
   return dates;
+}
+
+export async function getAllDates(): Promise<ImportantDate[]> {
+  return db.findAll<ImportantDate>('important_dates');
 }
 
 export async function getDatesByMonth(month: number): Promise<ImportantDate[]> {
