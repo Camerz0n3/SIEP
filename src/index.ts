@@ -1,11 +1,11 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
 import { getEnv } from './config/env';
-import { whatsappRouter } from './webhook/whatsapp';
+import { telegramRouter } from './webhook/telegram';
 import { generateDailyBriefing } from './briefing/daily';
 import { generateWeeklyWrapUp } from './briefing/weekly';
 import { checkReminders } from './cron/reminders';
-import { sendWhatsApp } from './services/twilio';
+import { sendMessage, registerWebhook } from './services/telegram';
 import { clearOldContext } from './services/context';
 
 const app = express();
@@ -19,9 +19,7 @@ app.use((_req, res, next) => {
   next();
 });
 
-// Parse URL-encoded bodies (Twilio webhooks)
-app.use(express.urlencoded({ extended: false }));
-// Parse JSON bodies (API + dashboard)
+// Parse JSON bodies (API + dashboard + Telegram webhook)
 app.use(express.json());
 
 // Health check
@@ -29,8 +27,8 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'siep', timestamp: new Date().toISOString() });
 });
 
-// WhatsApp webhook
-app.use(whatsappRouter);
+// Telegram webhook
+app.use(telegramRouter);
 
 // === Cron endpoints (called by Railway cron or internal scheduler) ===
 
@@ -38,7 +36,7 @@ app.post('/cron/daily-briefing', async (_req, res) => {
   try {
     const env = getEnv();
     const briefing = await generateDailyBriefing();
-    await sendWhatsApp(env.CAMERON_PHONE_NUMBER, briefing);
+    await sendMessage(env.TELEGRAM_CHAT_ID, briefing);
     res.json({ status: 'sent' });
   } catch (error) {
     console.error('Daily briefing error:', error);
@@ -50,7 +48,7 @@ app.post('/cron/weekly-wrapup', async (_req, res) => {
   try {
     const env = getEnv();
     const wrapup = await generateWeeklyWrapUp();
-    await sendWhatsApp(env.CAMERON_PHONE_NUMBER, wrapup);
+    await sendMessage(env.TELEGRAM_CHAT_ID, wrapup);
     res.json({ status: 'sent' });
   } catch (error) {
     console.error('Weekly wrap-up error:', error);
@@ -272,5 +270,12 @@ app.listen(port, () => {
   console.log(`\n🤵 Siep is online — port ${port}`);
   console.log(`   Health: http://localhost:${port}/health`);
   console.log(`   Dashboard: http://localhost:${port}/`);
-  console.log(`   Webhook: POST http://localhost:${port}/webhook/whatsapp\n`);
+  console.log(`   Webhook: POST http://localhost:${port}/webhook/telegram\n`);
+
+  // Register Telegram webhook in production
+  const domain = process.env.RAILWAY_PUBLIC_DOMAIN;
+  if (domain) {
+    registerWebhook(`https://${domain}/webhook/telegram`)
+      .catch(err => console.error('Failed to register Telegram webhook:', err));
+  }
 });

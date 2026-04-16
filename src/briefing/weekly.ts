@@ -39,7 +39,7 @@ ${upcomingDates.status === 'fulfilled' ? upcomingDates.value.map((d) => `• ${d
 `;
 
   const wrapUp = await generateResponse(
-    `Generate Cameron's weekly wrap-up. Summarise the week, carry forward outstanding tasks, preview the week ahead. Add Lloyd-from-Entourage editorial commentary. WhatsApp format.\n\nData:\n${wrapUpData}`,
+    `Generate Cameron's weekly wrap-up. Summarise the week, carry forward outstanding tasks, preview the week ahead. Add Lloyd-from-Entourage editorial commentary. Telegram Markdown format.\n\nData:\n${wrapUpData}`,
     ''
   );
 

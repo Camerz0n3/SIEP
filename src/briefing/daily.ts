@@ -67,7 +67,7 @@ ${weatherDisplay}
 `;
 
   const briefing = await generateResponse(
-    `Generate Cameron's morning briefing. Use this exact structure but add your Lloyd-from-Entourage personality. Keep it concise for WhatsApp. Use WhatsApp formatting (*bold*, _italic_). Add a "Siep's Notes" section at the end with any observations or reminders.\n\nData:\n${briefingData}`,
+    `Generate Cameron's morning briefing. Use this exact structure but add your Lloyd-from-Entourage personality. Keep it concise for Telegram. Use Markdown formatting (*bold*, _italic_). Add a "Siep's Notes" section at the end with any observations or reminders.\n\nData:\n${briefingData}`,
     ''
   );
 

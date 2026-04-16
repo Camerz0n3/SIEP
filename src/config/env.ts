@@ -1,11 +1,9 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  // Twilio
-  TWILIO_ACCOUNT_SID: z.string().min(1),
-  TWILIO_AUTH_TOKEN: z.string().min(1),
-  TWILIO_WHATSAPP_NUMBER: z.string().startsWith('whatsapp:'),
-  CAMERON_PHONE_NUMBER: z.string().startsWith('whatsapp:'),
+  // Telegram
+  TELEGRAM_BOT_TOKEN: z.string().min(1),
+  TELEGRAM_CHAT_ID: z.string().min(1),
 
   // Google OAuth2
   GOOGLE_CLIENT_ID: z.string().min(1),

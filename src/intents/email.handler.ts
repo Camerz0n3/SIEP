@@ -22,7 +22,7 @@ export async function handleEmailIntent(parsed: ParsedIntent): Promise<string> {
         return "Inbox is quiet — nothing important in the last 12 hours. Enjoy the peace.";
       }
       return await generateResponse(
-        `Summarise these emails for Cameron. Group by account (personal/koja). Flag anything that needs action. Be concise — this is WhatsApp.\n\nEmails:\n${JSON.stringify(emails, null, 2)}`,
+        `Summarise these emails for Cameron. Group by account (personal/koja). Flag anything that needs action. Be concise — this is Telegram.\n\nEmails:\n${JSON.stringify(emails, null, 2)}`,
         ''
       );
     }

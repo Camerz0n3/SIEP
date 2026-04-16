@@ -1,5 +1,5 @@
 import { getDueReminders, markReminderSent } from '../services/tasks';
-import { sendWhatsApp } from '../services/twilio';
+import { sendMessage } from '../services/telegram';
 import { getEnv } from '../config/env';
 
 export async function checkReminders(): Promise<number> {
@@ -11,10 +11,10 @@ export async function checkReminders(): Promise<number> {
   for (const task of dueReminders) {
     try {
       const message = task.title.startsWith('Reminder:')
-        ? `⏰ Heads up boss — ${task.title.replace('Reminder: ', '')} is coming up.`
-        : `⏰ Don't forget: ${task.title}`;
+        ? `Heads up boss — ${task.title.replace('Reminder: ', '')} is coming up.`
+        : `Don't forget: ${task.title}`;
 
-      await sendWhatsApp(env.CAMERON_PHONE_NUMBER, message);
+      await sendMessage(env.TELEGRAM_CHAT_ID, message);
       await markReminderSent(task.id);
       sent++;
     } catch (error) {
