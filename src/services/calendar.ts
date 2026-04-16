@@ -221,13 +221,25 @@ export async function findEvent(
 export function formatEventsForDisplay(events: CalendarEvent[]): string {
   if (events.length === 0) return 'Clear day — no events scheduled.';
 
-  return events
-    .map((e) => {
-      const time = e.start
-        ? format(new TZDate(new Date(e.start), TIMEZONE), 'HH:mm')
-        : 'All day';
-      const loc = e.location ? ` at ${e.location}` : '';
-      return `• ${time} — ${e.title}${loc}`;
-    })
-    .join('\n');
+  // Group events by date so the LLM doesn't conflate different days
+  const grouped: Record<string, string[]> = {};
+  for (const e of events) {
+    const dateKey = e.start
+      ? format(new TZDate(new Date(e.start), TIMEZONE), 'EEEE d MMM')
+      : 'Unknown';
+    const time = e.start
+      ? format(new TZDate(new Date(e.start), TIMEZONE), 'HH:mm')
+      : 'All day';
+    const endTime = e.end
+      ? format(new TZDate(new Date(e.end), TIMEZONE), 'HH:mm')
+      : '';
+    const timeRange = endTime ? `${time}-${endTime}` : time;
+    const loc = e.location ? ` at ${e.location}` : '';
+    if (!grouped[dateKey]) grouped[dateKey] = [];
+    grouped[dateKey].push(`  • ${timeRange} — ${e.title}${loc}`);
+  }
+
+  return Object.entries(grouped)
+    .map(([date, items]) => `${date}:\n${items.join('\n')}`)
+    .join('\n\n');
 }
