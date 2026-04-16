@@ -47,7 +47,12 @@ export async function handleCalendarIntent(
         category: 'personal',
       });
 
-      return parsed.response;
+      // Always confirm exactly what was created so Cameron can catch errors
+      const startTime = format(new TZDate(new Date(event.start), TIMEZONE), 'HH:mm');
+      const endTime = format(new TZDate(new Date(event.end), TIMEZONE), 'HH:mm');
+      const eventDate = format(new TZDate(new Date(event.start), TIMEZONE), 'EEEE d MMM');
+      const loc = event.location ? ` at ${event.location}` : '';
+      return `Done — *${event.title}* added:\n${eventDate}, ${startTime}-${endTime}${loc}\n\nThat look right?`;
     }
 
     case 'query_schedule': {
