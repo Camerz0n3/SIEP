@@ -77,9 +77,13 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({ commsMessages: [...s.commsMessages, userMsg], commsLoading: true }))
 
     try {
+      const apiKey = import.meta.env.VITE_API_KEY || localStorage.getItem('siep_api_key') || ''
       const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
+        },
         body: JSON.stringify({ message: text }),
       })
       if (!res.ok) {
