@@ -1,0 +1,48 @@
+name: SIEP Scheduled Jobs
+
+on:
+  schedule:
+    # Daily briefing — 4:50 UTC = 6:50 CEST (Verbier summer)
+    - cron: '50 4 * * *'
+    # Weekly wrap-up — Sunday 18:50 UTC = 20:50 CEST
+    - cron: '50 18 * * 0'
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Which job to run'
+        required: true
+        type: choice
+        options:
+          - daily-briefing
+          - weekly-wrapup
+
+jobs:
+  daily-briefing:
+    if: github.event.schedule == '50 4 * * *' || (github.event_name == 'workflow_dispatch' && inputs.job == 'daily-briefing')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily briefing
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            "${{ secrets.SIEP_URL }}/cron/daily-briefing" \
+            --max-time 60)
+          echo "Response: $response"
+          if [ "$response" != "200" ]; then
+            echo "::error::Briefing failed with status $response"
+            exit 1
+          fi
+
+  weekly-wrapup:
+    if: github.event.schedule == '50 18 * * 0' || (github.event_name == 'workflow_dispatch' && inputs.job == 'weekly-wrapup')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger weekly wrap-up
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            "${{ secrets.SIEP_URL }}/cron/weekly-wrapup" \
+            --max-time 60)
+          echo "Response: $response"
+          if [ "$response" != "200" ]; then
+            echo "::error::Weekly wrap-up failed with status $response"
+            exit 1
+          fi
