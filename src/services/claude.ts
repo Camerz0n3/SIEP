@@ -87,6 +87,24 @@ IMPORTANT:
 - For query_schedule: your "response" field should be a SHORT intro only (e.g. "Here's what's on today boss:"). Do NOT list or guess events — the actual calendar data will be fetched separately and appended
 - NEVER fabricate dates, times, or event details in your response — only repeat what was explicitly said by the user or provided in context`;
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1500;
+
+async function withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      const isRetryable = error?.status === 429 || error?.status >= 500 ||
+        error?.code === 'ECONNRESET' || error?.code === 'ETIMEDOUT';
+      if (attempt === MAX_RETRIES || !isRetryable) throw error;
+      console.warn(`${label} attempt ${attempt} failed (${error.message}), retrying in ${RETRY_DELAY_MS * attempt}ms...`);
+      await new Promise(r => setTimeout(r, RETRY_DELAY_MS * attempt));
+    }
+  }
+  throw new Error('Unreachable');
+}
+
 export async function parseIntent(
   message: string,
   conversationContext: string
@@ -95,23 +113,26 @@ export async function parseIntent(
   const now = new TZDate(new Date(), TIMEZONE);
   const currentDateTime = format(now, "EEEE, d MMMM yyyy 'at' HH:mm");
 
-  const response = await client.chat.completions.create({
-    model: GROQ_MODEL,
-    messages: [
-      { role: 'system', content: INTENT_PARSER_PROMPT },
-      {
-        role: 'user',
-        content: `Current date/time: ${currentDateTime}
+  const response = await withRetry(
+    () => client.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: INTENT_PARSER_PROMPT },
+        {
+          role: 'user',
+          content: `Current date/time: ${currentDateTime}
 
 Recent conversation context:
 ${conversationContext || 'No recent context.'}
 
 Cameron's message: "${message}"`,
-      },
-    ],
-    max_tokens: 1024,
-    temperature: 0.3,
-  });
+        },
+      ],
+      max_tokens: 1024,
+      temperature: 0.3,
+    }),
+    'parseIntent'
+  );
 
   const text = response.choices[0]?.message?.content || '';
 
@@ -135,21 +156,24 @@ export async function generateResponse(
   const now = new TZDate(new Date(), TIMEZONE);
   const currentDateTime = format(now, "EEEE, d MMMM yyyy 'at' HH:mm");
 
-  const response = await client.chat.completions.create({
-    model: GROQ_MODEL,
-    messages: [
-      {
-        role: 'system',
-        content: `${SIEP_SYSTEM_PROMPT}\n\nCurrent date/time: ${currentDateTime}`,
-      },
-      {
-        role: 'user',
-        content: `${context ? `Context:\n${context}\n\n` : ''}${prompt}`,
-      },
-    ],
-    max_tokens: 2048,
-    temperature: 0.7,
-  });
+  const response = await withRetry(
+    () => client.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: `${SIEP_SYSTEM_PROMPT}\n\nCurrent date/time: ${currentDateTime}`,
+        },
+        {
+          role: 'user',
+          content: `${context ? `Context:\n${context}\n\n` : ''}${prompt}`,
+        },
+      ],
+      max_tokens: 2048,
+      temperature: 0.7,
+    }),
+    'generateResponse'
+  );
 
   return response.choices[0]?.message?.content || 'Brain freeze. Try again?';
 }

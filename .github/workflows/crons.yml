@@ -6,6 +6,8 @@ on:
     - cron: '50 4 * * *'
     # Weekly wrap-up — Sunday 18:50 UTC = 20:50 CEST
     - cron: '50 18 * * 0'
+    # Reminder checks — every 15 min
+    - cron: '*/15 * * * *'
   workflow_dispatch:
     inputs:
       job:
@@ -15,6 +17,7 @@ on:
         options:
           - daily-briefing
           - weekly-wrapup
+          - check-reminders
 
 jobs:
   daily-briefing:
@@ -46,3 +49,13 @@ jobs:
             echo "::error::Weekly wrap-up failed with status $response"
             exit 1
           fi
+
+  check-reminders:
+    if: github.event.schedule == '*/15 * * * *' || (github.event_name == 'workflow_dispatch' && inputs.job == 'check-reminders')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check reminders and clear old context
+        run: |
+          curl -s -o /dev/null -w "" -X POST \
+            "${{ secrets.SIEP_URL }}/cron/check-reminders" \
+            --max-time 30 || true

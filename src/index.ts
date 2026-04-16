@@ -273,9 +273,13 @@ app.listen(port, () => {
   console.log(`   Webhook: POST http://localhost:${port}/webhook/telegram\n`);
 
   // Register Telegram webhook in production
-  const domain = process.env.RAILWAY_PUBLIC_DOMAIN;
+  const domain = process.env.RAILWAY_PUBLIC_DOMAIN || process.env.WEBHOOK_DOMAIN;
   if (domain) {
     registerWebhook(`https://${domain}/webhook/telegram`)
+      .catch(err => console.error('Failed to register Telegram webhook:', err));
+  } else if (process.env.NODE_ENV === 'production') {
+    // Fallback: use known Railway URL
+    registerWebhook('https://siep-production.up.railway.app/webhook/telegram')
       .catch(err => console.error('Failed to register Telegram webhook:', err));
   }
 });
