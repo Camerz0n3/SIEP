@@ -1,4 +1,4 @@
-import { ParsedIntent } from '../services/claude';
+import { ParsedIntent, generateResponse } from '../services/claude';
 import {
   createEvent,
   queryEvents,
@@ -57,7 +57,11 @@ export async function handleCalendarIntent(
       });
 
       const display = formatEventsForDisplay(events);
-      return `${parsed.response}\n\n${display}`;
+      const range = (p.range as string) || 'today';
+      return await generateResponse(
+        `Cameron asked about his ${range} schedule. Here are the ACTUAL events from Google Calendar — report ONLY these, do not invent or guess any events:\n\n${display}\n\nGive a brief Lloyd-style summary. If no events, say it's clear.`,
+        ''
+      );
     }
 
     case 'edit_event': {

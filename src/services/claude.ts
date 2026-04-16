@@ -83,7 +83,9 @@ IMPORTANT:
 - Parse dates relative to the current date/time provided
 - For ambiguous times, assume the next occurrence (e.g., "Thursday" means next Thursday if today is Friday)
 - For tasks mentioning Koja, chalets, or hospitality, set category to "koja"
-- Be generous with intent detection — if it sounds like a calendar event, it probably is`;
+- Be generous with intent detection — if it sounds like a calendar event, it probably is
+- For query_schedule: your "response" field should be a SHORT intro only (e.g. "Here's what's on today boss:"). Do NOT list or guess events — the actual calendar data will be fetched separately and appended
+- NEVER fabricate dates, times, or event details in your response — only repeat what was explicitly said by the user or provided in context`;
 
 export async function parseIntent(
   message: string,
