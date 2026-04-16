@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { getEnv } from './config/env';
 import { telegramRouter } from './webhook/telegram';
@@ -10,10 +10,10 @@ import { clearOldContext } from './services/context';
 
 const app = express();
 
-// CORS for dashboard (allow any origin in dev, restrict in prod later)
+// CORS for dashboard
 app.use((_req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   if (_req.method === 'OPTIONS') { res.sendStatus(204); return; }
   next();
@@ -22,17 +22,34 @@ app.use((_req, res, next) => {
 // Parse JSON bodies (API + dashboard + Telegram webhook)
 app.use(express.json());
 
-// Health check
+// API auth middleware — protects /api/* and /cron/* routes
+// Public routes: /health, /webhook/telegram, static dashboard files
+function requireAuth(req: Request, res: Response, next: NextFunction): void {
+  const env = getEnv();
+  if (!env.API_SECRET) { next(); return; } // No secret set = open (dev mode)
+
+  const header = req.headers.authorization;
+  const token = header?.startsWith('Bearer ') ? header.slice(7) : null;
+  const query = req.query.key as string | undefined;
+
+  if (token === env.API_SECRET || query === env.API_SECRET) {
+    next();
+  } else {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+}
+
+// Health check (public)
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'siep', timestamp: new Date().toISOString() });
 });
 
-// Telegram webhook
+// Telegram webhook (public — Telegram needs to reach it)
 app.use(telegramRouter);
 
-// === Cron endpoints (called by Railway cron or internal scheduler) ===
+// === Cron endpoints (protected) ===
 
-app.post('/cron/daily-briefing', async (_req, res) => {
+app.post('/cron/daily-briefing', requireAuth, async (_req, res) => {
   try {
     const env = getEnv();
     const briefing = await generateDailyBriefing();
@@ -44,7 +61,7 @@ app.post('/cron/daily-briefing', async (_req, res) => {
   }
 });
 
-app.post('/cron/weekly-wrapup', async (_req, res) => {
+app.post('/cron/weekly-wrapup', requireAuth, async (_req, res) => {
   try {
     const env = getEnv();
     const wrapup = await generateWeeklyWrapUp();
@@ -56,7 +73,7 @@ app.post('/cron/weekly-wrapup', async (_req, res) => {
   }
 });
 
-app.post('/cron/check-reminders', async (_req, res) => {
+app.post('/cron/check-reminders', requireAuth, async (_req, res) => {
   try {
     const sent = await checkReminders();
     await clearOldContext();
@@ -66,6 +83,10 @@ app.post('/cron/check-reminders', async (_req, res) => {
     res.status(500).json({ error: 'Failed to check reminders' });
   }
 });
+
+// === Protected API routes ===
+// All /api/* routes require auth when API_SECRET is set
+app.use('/api', requireAuth);
 
 // === Chat endpoint (dashboard comms panel) ===
 

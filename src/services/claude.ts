@@ -15,25 +15,28 @@ function getClient(): Groq {
   return _client;
 }
 
+export type IntentType =
+  | 'add_event'
+  | 'query_schedule'
+  | 'edit_event'
+  | 'cancel_event'
+  | 'add_task'
+  | 'list_tasks'
+  | 'complete_task'
+  | 'add_date'
+  | 'check_emails'
+  | 'draft_reply'
+  | 'send_reply'
+  | 'relay_message'
+  | 'book_something'
+  | 'weather'
+  | 'general_chat';
+
 export interface ParsedIntent {
-  intent:
-    | 'add_event'
-    | 'query_schedule'
-    | 'edit_event'
-    | 'cancel_event'
-    | 'add_task'
-    | 'list_tasks'
-    | 'complete_task'
-    | 'add_date'
-    | 'check_emails'
-    | 'draft_reply'
-    | 'send_reply'
-    | 'relay_message'
-    | 'book_something'
-    | 'weather'
-    | 'general_chat';
+  intent: IntentType;
   params: Record<string, unknown>;
   response: string;
+  actions?: { intent: IntentType; params: Record<string, unknown> }[];
 }
 
 const SIEP_SYSTEM_PROMPT = `You are Siep, Cameron's personal assistant. You are modelled on Lloyd from Entourage — sharp, loyal, funny, slightly irreverent, always efficient, and genuinely invested in making Cameron's day run smoothly.
@@ -60,32 +63,42 @@ Rules:
 
 const INTENT_PARSER_PROMPT = `You are Siep's intent parser. Given the user's message and conversation context, identify the intent and extract parameters.
 
-Respond ONLY with valid JSON, no other text:
+Respond ONLY with valid JSON, no other text. Use ONE of these two formats:
+
+SINGLE ACTION:
 {
   "intent": "add_event" | "query_schedule" | "edit_event" | "cancel_event" | "add_task" | "list_tasks" | "complete_task" | "add_date" | "check_emails" | "draft_reply" | "send_reply" | "relay_message" | "book_something" | "weather" | "general_chat",
-  "params": {
-    // For add_event: { "title": string, "date": "YYYY-MM-DD", "time": "HH:MM" (MUST be the START time, not end time), "location": string?, "duration_minutes": number? (calculate from start-to-end if both given, e.g. "18:30 to 20:30" means time="18:30" duration_minutes=120), "reminder_minutes_before": number? }
-    // For query_schedule: { "date": "YYYY-MM-DD", "range": "today" | "tomorrow" | "week" }
-    // For edit_event: { "original_title": string, "date": "YYYY-MM-DD"?, "new_time": "HH:MM"?, "new_title": string?, "new_location": string? }
-    // For cancel_event: { "title": string, "date": "YYYY-MM-DD"? }
-    // For add_task: { "title": string, "due_date": "YYYY-MM-DD"?, "due_time": "HH:MM"?, "priority": "low"|"normal"|"high"|"urgent"?, "category": "general"|"work"|"personal"|"koja"? }
-    // For list_tasks: { "filter": "all" | "today" | "overdue" | "category", "category": string? }
-    // For complete_task: { "title_query": string }
-    // For add_date: { "title": string, "person_name": string?, "month": number, "day": number, "year": number?, "category": "personal"|"work"|"family"? }
-    // For relay_message: { "recipient": string, "message": string }
-    // For weather: {}
-    // For general_chat: {}
-  },
+  "params": { ... },
   "response": "Siep's reply to Cameron in Lloyd style"
 }
 
+MULTIPLE ACTIONS (when Cameron mentions multiple events/tasks in one message):
+{
+  "actions": [
+    { "intent": "add_event", "params": { ... } },
+    { "intent": "add_event", "params": { ... } }
+  ],
+  "response": "Siep's reply to Cameron in Lloyd style"
+}
+
+Parameter schemas:
+- add_event: { "title": string, "date": "YYYY-MM-DD", "time": "HH:MM" (MUST be START time), "location": string?, "duration_minutes": number? (calculate from time range, e.g. "18:30 to 20:30" = time:"18:30" duration_minutes:120) }
+- query_schedule: { "date": "YYYY-MM-DD", "range": "today" | "tomorrow" | "week" }
+- edit_event: { "original_title": string, "date": "YYYY-MM-DD"?, "new_time": "HH:MM"?, "new_title": string?, "new_location": string? }
+- cancel_event: { "title": string, "date": "YYYY-MM-DD"? }
+- add_task: { "title": string, "due_date": "YYYY-MM-DD"?, "due_time": "HH:MM"?, "priority": "low"|"normal"|"high"|"urgent"?, "category": "general"|"work"|"personal"|"koja"? }
+- list_tasks: { "filter": "all" | "today" | "overdue" | "category", "category": string? }
+- complete_task: { "title_query": string }
+- add_date: { "title": string, "person_name": string?, "month": number, "day": number, "year": number?, "category": "personal"|"work"|"family"? }
+- relay_message: { "recipient": string, "message": string }
+
 IMPORTANT:
+- When Cameron describes MULTIPLE separate events (different times, locations, or days), use the "actions" array format — create one action per event. NEVER merge separate events into one.
 - Parse dates relative to the current date/time provided
 - For ambiguous times, assume the next occurrence (e.g., "Thursday" means next Thursday if today is Friday)
 - For tasks mentioning Koja, chalets, or hospitality, set category to "koja"
-- Be generous with intent detection — if it sounds like a calendar event, it probably is
-- For query_schedule: your "response" field should be a SHORT intro only (e.g. "Here's what's on today boss:"). Do NOT list or guess events — the actual calendar data will be fetched separately and appended
-- NEVER fabricate dates, times, or event details in your response — only repeat what was explicitly said by the user or provided in context`;
+- For query_schedule: your "response" should be SHORT intro only (e.g. "Here's what's on today boss:"). Do NOT list events.
+- NEVER fabricate dates, times, or event details — only repeat what the user explicitly said`;
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1500;
@@ -145,7 +158,19 @@ Cameron's message: "${message}"`,
     };
   }
 
-  return JSON.parse(jsonMatch[0]) as ParsedIntent;
+  const parsed = JSON.parse(jsonMatch[0]);
+
+  // Handle multi-action format: { actions: [...], response }
+  if (parsed.actions && Array.isArray(parsed.actions)) {
+    return {
+      intent: parsed.actions[0]?.intent || 'general_chat',
+      params: parsed.actions[0]?.params || {},
+      response: parsed.response || '',
+      actions: parsed.actions,
+    };
+  }
+
+  return parsed as ParsedIntent;
 }
 
 export async function generateResponse(

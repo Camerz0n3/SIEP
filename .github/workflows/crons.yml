@@ -27,6 +27,7 @@ jobs:
       - name: Trigger daily briefing
         run: |
           response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.SIEP_API_SECRET }}" \
             "${{ secrets.SIEP_URL }}/cron/daily-briefing" \
             --max-time 60)
           echo "Response: $response"
@@ -42,6 +43,7 @@ jobs:
       - name: Trigger weekly wrap-up
         run: |
           response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.SIEP_API_SECRET }}" \
             "${{ secrets.SIEP_URL }}/cron/weekly-wrapup" \
             --max-time 60)
           echo "Response: $response"
@@ -57,5 +59,6 @@ jobs:
       - name: Check reminders and clear old context
         run: |
           curl -s -o /dev/null -w "" -X POST \
+            -H "Authorization: Bearer ${{ secrets.SIEP_API_SECRET }}" \
             "${{ secrets.SIEP_URL }}/cron/check-reminders" \
             --max-time 30 || true

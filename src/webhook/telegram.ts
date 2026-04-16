@@ -4,6 +4,7 @@ import { sendMessage } from '../services/telegram';
 import { parseIntent } from '../services/claude';
 import { getConversationContext, saveMessage } from '../services/context';
 import { routeIntent } from '../intents/router';
+import { generateDailyBriefing } from '../briefing/daily';
 
 export const telegramRouter = Router();
 
@@ -26,10 +27,20 @@ telegramRouter.post('/webhook/telegram', async (req: Request, res: Response) => 
       return;
     }
 
-    // /start command — echoes chat ID for setup
     const messageText = message.text || '';
+
+    // /start command — echoes chat ID for setup
     if (messageText === '/start') {
       await sendMessage(chatId, `Siep online, boss. Your chat ID is: \`${chatId}\``);
+      res.status(200).json({ ok: true });
+      return;
+    }
+
+    // /brief command — on-demand morning briefing
+    if (messageText === '/brief' || messageText.toLowerCase() === 'brief me') {
+      await sendMessage(chatId, 'Pulling your briefing now, one sec...');
+      const briefing = await generateDailyBriefing();
+      await sendMessage(chatId, briefing);
       res.status(200).json({ ok: true });
       return;
     }
@@ -58,14 +69,23 @@ telegramRouter.post('/webhook/telegram', async (req: Request, res: Response) => 
     // Parse intent
     const parsed = await parseIntent(messageText, context);
 
-    // Route to handler
-    const response = await routeIntent(parsed);
-
-    // Save response
-    await saveMessage('assistant', response, parsed.intent);
-
-    // Send reply
-    await sendMessage(chatId, response);
+    // Handle multi-action intents (e.g. "add X at 9:30 and Y at 13:30")
+    if (parsed.actions && parsed.actions.length > 1) {
+      const results: string[] = [];
+      for (const action of parsed.actions) {
+        const actionIntent = { ...parsed, intent: action.intent, params: action.params };
+        const result = await routeIntent(actionIntent);
+        results.push(result);
+      }
+      const response = results.join('\n\n');
+      await saveMessage('assistant', response, 'add_event');
+      await sendMessage(chatId, response);
+    } else {
+      // Single action
+      const response = await routeIntent(parsed);
+      await saveMessage('assistant', response, parsed.intent);
+      await sendMessage(chatId, response);
+    }
 
     res.status(200).json({ ok: true });
   } catch (error) {
