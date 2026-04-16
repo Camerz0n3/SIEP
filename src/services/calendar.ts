@@ -33,6 +33,7 @@ export async function createEvent(params: {
   time: string; // HH:MM
   location?: string;
   duration_minutes?: number;
+  recurrence?: string[]; // RRULE strings, e.g. ['RRULE:FREQ=WEEKLY;UNTIL=20260831T235959Z']
 }): Promise<CalendarEvent> {
   const cal = getCalendar();
   const duration = params.duration_minutes || DEFAULT_EVENT_DURATION_MINUTES;
@@ -54,6 +55,7 @@ export async function createEvent(params: {
       dateTime: endDate.toISOString(),
       timeZone: TIMEZONE,
     },
+    recurrence: params.recurrence,
   };
 
   const res = await cal.events.insert({
@@ -183,14 +185,37 @@ export async function findEvent(
   titleQuery: string,
   date?: string
 ): Promise<CalendarEvent | null> {
-  const events = await queryEvents({
+  // Search this week first, then expand to 30 days if not found
+  const weekEvents = await queryEvents({
     date,
     range: date ? undefined : 'week',
   });
   const query = titleQuery.toLowerCase();
-  return (
-    events.find((e) => e.title.toLowerCase().includes(query)) || null
-  );
+  const found = weekEvents.find((e) => e.title.toLowerCase().includes(query));
+  if (found) return found;
+
+  // Expand search to 30 days
+  const cal = getCalendar();
+  const now = new TZDate(new Date(), TIMEZONE);
+  const res = await cal.events.list({
+    calendarId: 'primary',
+    timeMin: startOfDay(now).toISOString(),
+    timeMax: endOfDay(addDays(now, 30)).toISOString(),
+    singleEvents: true,
+    orderBy: 'startTime',
+    q: titleQuery,
+    timeZone: TIMEZONE,
+  });
+
+  const matches = (res.data.items || []).map((e) => ({
+    id: e.id || undefined,
+    title: e.summary || 'Untitled',
+    start: e.start?.dateTime || e.start?.date || '',
+    end: e.end?.dateTime || e.end?.date || '',
+    location: e.location || undefined,
+  }));
+
+  return matches[0] || null;
 }
 
 export function formatEventsForDisplay(events: CalendarEvent[]): string {
