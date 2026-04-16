@@ -2,8 +2,8 @@ name: SIEP Scheduled Jobs
 
 on:
   schedule:
-    # Daily briefing — 4:50 UTC = 6:50 CEST (Verbier summer)
-    - cron: '50 4 * * *'
+    # Daily briefing — 5:27 UTC = 7:27 CEST (Verbier summer)
+    - cron: '27 5 * * *'
     # Weekly wrap-up — Sunday 18:50 UTC = 20:50 CEST
     - cron: '50 18 * * 0'
     # Reminder checks — every 15 min
@@ -21,7 +21,7 @@ on:
 
 jobs:
   daily-briefing:
-    if: github.event.schedule == '50 4 * * *' || (github.event_name == 'workflow_dispatch' && inputs.job == 'daily-briefing')
+    if: github.event.schedule == '27 5 * * *' || (github.event_name == 'workflow_dispatch' && inputs.job == 'daily-briefing')
     runs-on: ubuntu-latest
     steps:
       - name: Trigger daily briefing
