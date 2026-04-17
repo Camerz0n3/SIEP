@@ -1,4 +1,4 @@
-import { queryEvents } from '../services/calendar';
+import { queryEvents, queryEventRange } from '../services/calendar';
 import { db, generateId } from '../services/database';
 import { getUpcomingDates } from '../services/dates';
 import { generateResponse } from '../services/claude';
@@ -19,7 +19,7 @@ export async function generateWeeklyWrapUp(): Promise<string> {
   const pendingTasks = db.findWhere<Task>('tasks', (t) => t.status === 'pending');
 
   const [pastEvents, upcomingDates] = await Promise.allSettled([
-    queryEvents({ date: format(weekAgo, 'yyyy-MM-dd'), range: 'week' }),
+    queryEventRange(weekAgo, now),
     getUpcomingDates(7),
   ]);
 

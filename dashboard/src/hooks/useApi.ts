@@ -12,21 +12,22 @@ export function useApi<T>(path: string) {
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [fetchKey, setFetchKey] = useState(0)
 
-  const refetch = useCallback(() => {
-    setLoading(true)
-    setError(null)
+  useEffect(() => {
+    let cancelled = false
     fetch(`${API_URL}${path}`, { headers: getAuthHeaders() })
       .then(res => {
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
         return res.json()
       })
-      .then(setData)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
-  }, [path])
+      .then(d => { if (!cancelled) setData(d) })
+      .catch(e => { if (!cancelled) setError(e.message) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [path, fetchKey])
 
-  useEffect(() => { refetch() }, [refetch])
+  const refetch = useCallback(() => setFetchKey(k => k + 1), [])
 
   return { data, loading, error, refetch }
 }

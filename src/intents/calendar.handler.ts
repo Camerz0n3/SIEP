@@ -24,12 +24,17 @@ export async function handleCalendarIntent(
         return parsed.response || "Need a title, date and time to add an event. What are we booking?";
       }
 
+      const recurrence = p.recurrence
+        ? [String(p.recurrence).startsWith('RRULE:') ? String(p.recurrence) : `RRULE:${p.recurrence}`]
+        : undefined;
+
       const event = await createEvent({
         title: p.title as string,
         date: p.date as string,
         time: p.time as string,
         location: p.location as string | undefined,
         duration_minutes: p.duration_minutes as number | undefined,
+        recurrence,
       });
 
       // Create a reminder task

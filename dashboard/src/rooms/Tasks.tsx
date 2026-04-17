@@ -19,6 +19,8 @@ export function Tasks() {
   const active = pending.filter(t => t.priority === 'normal' && !isOverdue(t))
   const backlog = pending.filter(t => t.priority === 'low' && !isOverdue(t))
 
+  // Filter to recently completed tasks — Date.now() is intentionally impure (time-dependent UI)
+  // eslint-disable-next-line react-hooks/purity
   const fiveDaysAgo = Date.now() - 5 * 24 * 60 * 60 * 1000
   const recentCompleted = completed.filter(t =>
     t.completed_at && new Date(t.completed_at).getTime() > fiveDaysAgo

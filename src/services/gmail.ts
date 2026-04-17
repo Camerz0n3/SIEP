@@ -75,6 +75,33 @@ export async function scanEmails(
   return emails;
 }
 
+export async function classifyEmails(emails: EmailSummary[]): Promise<EmailSummary[]> {
+  if (emails.length === 0) return emails;
+
+  try {
+    const { generateResponse } = await import('./claude');
+    const summaries = emails.map((e, i) => `[${i}] From: ${e.from} | Subject: ${e.subject} | Snippet: ${e.snippet}`).join('\n');
+    const result = await generateResponse(
+      `Classify which of these emails need Cameron's action (reply, decision, or follow-up). Return ONLY a JSON array of the index numbers that need action, e.g. [0, 3, 5]. If none need action, return []. Be selective — newsletters, notifications, and automated emails do NOT need action.\n\nEmails:\n${summaries}`,
+      ''
+    );
+
+    const match = result.match(/\[[\d,\s]*\]/);
+    if (match) {
+      const indices: number[] = JSON.parse(match[0]);
+      for (const idx of indices) {
+        if (idx >= 0 && idx < emails.length) {
+          emails[idx].needsAction = true;
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Email classification failed (non-fatal):', e);
+  }
+
+  return emails;
+}
+
 export async function scanAllEmails(
   hoursBack: number = 24
 ): Promise<EmailSummary[]> {
@@ -97,7 +124,7 @@ export async function scanAllEmails(
     }
   }
 
-  return results;
+  return classifyEmails(results);
 }
 
 export async function sendEmail(

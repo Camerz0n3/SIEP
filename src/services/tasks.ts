@@ -42,18 +42,31 @@ export async function createTask(params: {
   return db.insert('tasks', task);
 }
 
+function taskDeadline(t: Task): Date {
+  const [year, month, day] = (t.due_date || '').split('-').map(Number);
+  if (t.due_time) {
+    const [hour, minute] = t.due_time.split(':').map(Number);
+    return new TZDate(year, month - 1, day, hour, minute, 0, TIMEZONE);
+  }
+  // No due_time — deadline is end of the due date
+  return new TZDate(year, month - 1, day, 23, 59, 59, TIMEZONE);
+}
+
 export async function listTasks(filter?: {
   filter?: 'all' | 'today' | 'overdue' | 'category';
   category?: string;
+  includeCompleted?: boolean;
 }): Promise<Task[]> {
-  const now = new Date().toISOString();
-  let tasks = db.findWhere<Task>('tasks', (t) => t.status === 'pending');
+  const now = new TZDate(new Date(), TIMEZONE);
+  let tasks = filter?.includeCompleted
+    ? db.findAll<Task>('tasks')
+    : db.findWhere<Task>('tasks', (t) => t.status === 'pending');
 
   if (filter?.filter === 'today') {
-    const today = new Date().toISOString().split('T')[0];
-    tasks = tasks.filter((t) => t.due_date && t.due_date.startsWith(today));
+    const today = format(now, 'yyyy-MM-dd');
+    tasks = tasks.filter((t) => t.due_date && t.due_date === today);
   } else if (filter?.filter === 'overdue') {
-    tasks = tasks.filter((t) => t.due_date && t.due_date < now);
+    tasks = tasks.filter((t) => t.status === 'pending' && t.due_date && taskDeadline(t) < now);
   } else if (filter?.filter === 'category' && filter.category) {
     tasks = tasks.filter((t) => t.category === filter.category);
   }
@@ -83,10 +96,10 @@ export async function getOverdueTasks(): Promise<Task[]> {
 }
 
 export async function getDueReminders(): Promise<Task[]> {
-  const now = new Date().toISOString();
+  const now = new TZDate(new Date(), TIMEZONE);
   return db.findWhere<Task>(
     'tasks',
-    (t) => t.status === 'pending' && !t.reminder_sent && !!t.due_date && t.due_date <= now
+    (t) => t.status === 'pending' && !t.reminder_sent && !!t.due_date && taskDeadline(t) <= now
   );
 }
 
@@ -101,7 +114,7 @@ export function formatTasksForDisplay(tasks: Task[]): string {
 
   return tasks
     .map((t) => {
-      const overdue = t.due_date && new Date(t.due_date) < now ? '[Overdue] ' : '';
+      const overdue = t.due_date && taskDeadline(t) < now ? '[Overdue] ' : '';
       const due = t.due_date
         ? ` — due ${format(new TZDate(new Date(t.due_date), TIMEZONE), 'EEE d MMM')}`
         : '';

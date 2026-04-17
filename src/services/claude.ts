@@ -82,7 +82,7 @@ MULTIPLE ACTIONS (when Cameron mentions multiple events/tasks in one message):
 }
 
 Parameter schemas:
-- add_event: { "title": string, "date": "YYYY-MM-DD", "time": "HH:MM" (MUST be START time), "location": string?, "duration_minutes": number? (calculate from time range, e.g. "18:30 to 20:30" = time:"18:30" duration_minutes:120) }
+- add_event: { "title": string, "date": "YYYY-MM-DD", "time": "HH:MM" (MUST be START time), "location": string?, "duration_minutes": number? (calculate from time range, e.g. "18:30 to 20:30" = time:"18:30" duration_minutes:120), "recurrence": string? (only if user says "every week/day/month" — use RRULE format e.g. "RRULE:FREQ=WEEKLY" or "RRULE:FREQ=WEEKLY;UNTIL=20260831T235959Z") }
 - query_schedule: { "date": "YYYY-MM-DD", "range": "today" | "tomorrow" | "week" }
 - edit_event: { "original_title": string, "date": "YYYY-MM-DD"?, "new_time": "HH:MM"?, "new_title": string?, "new_location": string? }
 - cancel_event: { "title": string, "date": "YYYY-MM-DD"? }
