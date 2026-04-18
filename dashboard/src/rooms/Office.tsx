@@ -36,6 +36,10 @@ export function Office() {
 
   const latestBriefing = briefings?.[0]
 
+  const tasksLoaded = tasks !== null
+  const emailsLoaded = emails !== null
+  const eventsLoaded = events !== null
+
   return (
     <>
       <RoomHeader
@@ -63,26 +67,32 @@ export function Office() {
           <div className={styles.card}>
             <div className={styles.cardLabel}>Next Meeting</div>
             <div className={`${styles.cardValue} ${styles.gold}`}>
-              {nextEvent ? formatTime(nextEvent.start) : '--:--'}
+              {!eventsLoaded ? '\u2014' : nextEvent ? formatTime(nextEvent.start) : '--:--'}
             </div>
             <div className={styles.cardDetail}>
-              {nextEvent ? `${nextEvent.title} \u2014 ${formatCountdown(nextEvent.start)}` : 'No meetings today'}
+              {!eventsLoaded
+                ? 'Checking the calendar...'
+                : nextEvent
+                ? `${nextEvent.title} \u2014 ${formatCountdown(nextEvent.start)}`
+                : 'No meetings today'}
             </div>
           </div>
           <div className={styles.card}>
             <div className={styles.cardLabel}>Verbier Weather</div>
             <div className={styles.cardValue}>
-              {weather ? `${weather.temperature}\u00B0C` : '--'}
+              {weather ? `${weather.temperature}\u00B0C` : '\u2014'}
             </div>
             <div className={styles.cardDetail}>
-              {weather ? weather.description : 'Loading...'}
+              {weather ? weather.description : 'Checking the sky...'}
             </div>
           </div>
           <div className={styles.card}>
             <div className={styles.cardLabel}>Tasks Today</div>
-            <div className={`${styles.cardValue} ${styles.gold}`}>{pendingTasks.length}</div>
+            <div className={`${styles.cardValue} ${styles.gold}`}>
+              {tasksLoaded ? pendingTasks.length : '\u2014'}
+            </div>
             <div className={styles.cardDetail}>
-              {urgentTasks} urgent, {normalTasks} normal
+              {tasksLoaded ? `${urgentTasks} urgent, ${normalTasks} normal` : 'Counting pins...'}
             </div>
             <div className={styles.completionBar}>
               <div className={styles.fill} style={{ width: `${completionPct}%` }} />
@@ -90,9 +100,11 @@ export function Office() {
           </div>
           <div className={styles.card}>
             <div className={styles.cardLabel}>Unread Emails</div>
-            <div className={styles.cardValue}>{unreadEmails}</div>
+            <div className={styles.cardValue}>
+              {emailsLoaded ? unreadEmails : '\u2014'}
+            </div>
             <div className={styles.cardDetail}>
-              {importantEmails} flagged as important
+              {emailsLoaded ? `${importantEmails} flagged as important` : 'Sorting the mail...'}
             </div>
           </div>
         </div>
