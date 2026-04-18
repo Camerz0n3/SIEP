@@ -24,6 +24,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   background: var(--bg-surface);
 }
 
@@ -80,6 +82,25 @@
   background: var(--border-dark);
   flex: 1;
   min-height: 0;
+}
+
+/* Monthly view: stack 3 week grids vertically, divider between them */
+.monthGrid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.monthGrid .weekGrid {
+  flex: none;
+  min-height: 200px;
+  border-top: 1px solid var(--border-dark);
+}
+
+.monthGrid .weekGrid:first-child {
+  border-top: none;
 }
 
 .dayCol {
