@@ -37,7 +37,7 @@ function decodeEntities(text: string): string {
 
 export function Emails() {
   const [filter, setFilter] = useState<Filter>('all')
-  const { data: emails } = useAutoRefresh<Email[]>('/api/emails')
+  const { data: emails, loading, error } = useAutoRefresh<Email[]>('/api/emails')
 
   const allEmails = emails ?? []
   const filtered = allEmails.filter((e) => {
@@ -48,6 +48,7 @@ export function Emails() {
   })
 
   const importantCount = allEmails.filter(e => e.needsAction).length
+  const hasData = emails !== null
 
   const filters: { id: Filter; label: string }[] = [
     { id: 'all', label: 'ALL' },
@@ -61,7 +62,9 @@ export function Emails() {
       <RoomHeader
         icon={'\u{1F4E7}'}
         title="The Mail Room"
-        subtitle={`${allEmails.length} deliveries \u2022 ${importantCount} with the red seal`}
+        subtitle={hasData
+          ? `${allEmails.length} deliveries \u2022 ${importantCount} with the red seal`
+          : 'Checking the mail room...'}
       />
       <div className={styles.content}>
         {/* Siep filter summary */}
@@ -69,9 +72,17 @@ export function Emails() {
           <div className={styles.siepFilterAvatar}>{'\u{1F916}'}</div>
           <div className={styles.siepFilterText}>
             <span className={styles.siepLabel}>SIEP:</span>{' '}
-            "Sorted through the mail boss. {allEmails.length} made the cut.
-            {importantCount > 0 && ` ${importantCount} look${importantCount === 1 ? 's' : ''} important \u2014 gave those the red seal.`}
-            {importantCount === 0 && ' Nothing urgent today.'}"
+            {error
+              ? `"Mail room's locked, boss. Couldn't get through \u2014 ${error}"`
+              : !hasData && loading
+              ? '"Sorting through the mail now, boss. One minute."'
+              : (
+                <>
+                  "Sorted through the mail boss. {allEmails.length} made the cut.
+                  {importantCount > 0 && ` ${importantCount} look${importantCount === 1 ? 's' : ''} important \u2014 gave those the red seal.`}
+                  {importantCount === 0 && ' Nothing urgent today.'}"
+                </>
+              )}
           </div>
         </div>
 
@@ -90,7 +101,7 @@ export function Emails() {
 
         {/* Email list */}
         <div className={styles.emailList}>
-          {filtered.length === 0 && (
+          {hasData && filtered.length === 0 && (
             <div className={styles.emptyState}>
               {filter === 'all' ? "No mail today, boss. Quiet in the mail room." : `No ${filter} mail.`}
             </div>

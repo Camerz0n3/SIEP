@@ -25,9 +25,10 @@ function isKojaEvent(event: CalendarEvent): boolean {
 export function Calendar() {
   const [view, setView] = useState<'weekly' | 'today'>('weekly')
   const { data: weekEvents } = useAutoRefresh<CalendarEvent[]>('/api/calendar/week')
-  const { data: todayEvents } = useAutoRefresh<CalendarEvent[]>('/api/calendar/today')
+  const { data: todayEvents, error: todayError } = useAutoRefresh<CalendarEvent[]>('/api/calendar/today')
 
   const events = view === 'weekly' ? weekEvents : todayEvents
+  const todayLoaded = todayEvents !== null
 
   // Group events by date
   const grouped: Record<string, CalendarEvent[]> = {}
@@ -51,7 +52,11 @@ export function Calendar() {
       <RoomHeader
         icon={'\u{1F4C5}'}
         title="The Board Room"
-        subtitle={`${todayEvents?.length ?? 0} events today \u2014 the whiteboard never lies`}
+        subtitle={todayLoaded
+          ? `${todayEvents?.length ?? 0} events today \u2014 the whiteboard never lies`
+          : todayError
+          ? `Couldn't reach the board \u2014 ${todayError}`
+          : 'Chalking up the whiteboard...'}
       />
       <div className={styles.content}>
         {/* Whiteboard frame */}

@@ -5,10 +5,11 @@ import type { Briefing } from '../types'
 import styles from './Briefings.module.css'
 
 export function Briefings() {
-  const { data: briefings } = useAutoRefresh<Briefing[]>('/api/briefings')
+  const { data: briefings, loading, error } = useAutoRefresh<Briefing[]>('/api/briefings')
 
   const daily = briefings?.find(b => b.type === 'daily')
   const weekly = briefings?.find(b => b.type === 'weekly')
+  const isLoading = briefings === null && loading
 
   return (
     <>
@@ -54,17 +55,22 @@ export function Briefings() {
           <div className={styles.emptyState}>
             <div className={styles.emptyNewspaper}>
               <div className={styles.emptyMasthead}>THE SIEP DAILY</div>
-              <div className={styles.emptyHeadline}>NO EDITION TODAY</div>
+              <div className={styles.emptyHeadline}>
+                {error ? 'PRESSES JAMMED' : isLoading ? 'PRINTING...' : 'NO EDITION TODAY'}
+              </div>
               <div className={styles.emptyBody}>
-                The morning paper hasn't been printed yet, boss.
-                Siep generates one fresh at 07:00 each morning.
+                {error
+                  ? `Couldn't reach the print room, boss \u2014 ${error}.`
+                  : isLoading
+                  ? 'Fetching the morning edition from the presses...'
+                  : "The morning paper hasn't been printed yet, boss. Siep generates one fresh at 07:00 each morning."}
               </div>
             </div>
           </div>
         )}
 
         {/* Weekly wrap — The Sunday Paper */}
-        {weekly && (
+        {weekly ? (
           <div className={`${styles.newspaper} ${styles.weekly}`}>
             <div className={styles.masthead}>
               <div className={styles.mastheadRule} />
@@ -88,6 +94,16 @@ export function Briefings() {
                   {line || '\u00A0'}
                 </p>
               ))}
+            </div>
+          </div>
+        ) : daily && !isLoading && !error && (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyNewspaper}>
+              <div className={styles.emptyMasthead}>THE SUNDAY WRAP</div>
+              <div className={styles.emptyHeadline}>NEXT EDITION SUNDAY</div>
+              <div className={styles.emptyBody}>
+                Week's not wrapped yet, boss. The Sunday edition lands Sunday evening.
+              </div>
             </div>
           </div>
         )}

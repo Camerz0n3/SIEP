@@ -5,12 +5,18 @@ import type { Task } from '../types'
 import styles from './Tasks.module.css'
 
 function isOverdue(task: Task): boolean {
-  if (!task.due_date) return false
-  return new Date(task.due_date) < new Date() && task.status === 'pending'
+  if (!task.due_date || task.status !== 'pending') return false
+  // If no time given, deadline is end-of-day local; otherwise combine date + time.
+  const deadline = task.due_time
+    ? new Date(`${task.due_date}T${task.due_time}`)
+    : new Date(`${task.due_date}T23:59:59`)
+  if (Number.isNaN(deadline.getTime())) return false
+  return deadline.getTime() < Date.now()
 }
 
 export function Tasks() {
-  const { data: tasks } = useAutoRefresh<Task[]>('/api/tasks')
+  const { data: tasks, loading, error } = useAutoRefresh<Task[]>('/api/tasks')
+  const hasData = tasks !== null
 
   const pending = tasks?.filter(t => t.status === 'pending') ?? []
   const completed = tasks?.filter(t => t.status === 'completed') ?? []
@@ -60,7 +66,9 @@ export function Tasks() {
       <RoomHeader
         icon={'\u{1F4CB}'}
         title="The Cork Board"
-        subtitle={`${pending.length} pinned \u2022 ${completed.length} filed in the cabinet`}
+        subtitle={hasData
+          ? `${pending.length} pinned \u2022 ${completed.length} filed in the cabinet`
+          : error ? `Couldn't reach the board \u2014 ${error}` : 'Checking the board...'}
       />
       <div className={styles.content}>
         {/* Cork board surface */}
@@ -96,9 +104,14 @@ export function Tasks() {
               </div>
             )}
 
-            {pending.length === 0 && (
+            {hasData && pending.length === 0 && (
               <div className={styles.emptyState}>
                 Board's empty, boss. Nothing pinned up. Enjoy the quiet.
+              </div>
+            )}
+            {!hasData && loading && (
+              <div className={styles.emptyState}>
+                Siep's pulling the pins off the board...
               </div>
             )}
           </div>
