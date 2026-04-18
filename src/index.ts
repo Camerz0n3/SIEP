@@ -187,6 +187,19 @@ app.get('/api/calendar/week', async (_req, res) => {
   }
 });
 
+app.get('/api/calendar/month', async (_req, res) => {
+  try {
+    const { queryEventRange } = await import('./services/calendar');
+    const from = new Date();
+    const to = new Date();
+    to.setDate(to.getDate() + 21);
+    const events = await queryEventRange(from, to);
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch calendar' });
+  }
+});
+
 app.get('/api/emails', async (_req, res) => {
   try {
     const { scanAllEmails } = await import('./services/gmail');
