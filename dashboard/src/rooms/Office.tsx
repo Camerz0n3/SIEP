@@ -30,6 +30,8 @@ export function Office() {
   const unreadEmails = emails?.length ?? 0
   const importantEmails = emails?.filter(e => e.needsAction)?.length ?? 0
 
+  // Filter to next upcoming event — Date.now() is intentionally impure here (time-dependent UI)
+  // eslint-disable-next-line react-hooks/purity
   const nextEvent = events?.filter(e => new Date(e.start).getTime() > Date.now())?.[0]
 
   const latestBriefing = briefings?.[0]

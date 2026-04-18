@@ -11,11 +11,19 @@ import { clearOldContext } from './services/context';
 const app = express();
 
 // CORS for dashboard
-app.use((_req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+const ALLOWED_ORIGINS = [
+  'https://siep-production.up.railway.app',
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-  if (_req.method === 'OPTIONS') { res.sendStatus(204); return; }
+  if (req.method === 'OPTIONS') { res.sendStatus(204); return; }
   next();
 });
 
@@ -30,9 +38,8 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
 
   const header = req.headers.authorization;
   const token = header?.startsWith('Bearer ') ? header.slice(7) : null;
-  const query = req.query.key as string | undefined;
 
-  if (token === env.API_SECRET || query === env.API_SECRET) {
+  if (token === env.API_SECRET) {
     next();
   } else {
     res.status(401).json({ error: 'Unauthorized' });
@@ -120,7 +127,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 app.get('/api/tasks', async (_req, res) => {
   try {
     const { listTasks } = await import('./services/tasks');
-    const tasks = await listTasks();
+    const tasks = await listTasks({ includeCompleted: true });
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch tasks' });

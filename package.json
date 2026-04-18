@@ -1,13 +1,12 @@
 {
   "name": "siep",
   "version": "1.0.0",
-  "description": "Siep — Cameron's personal AI assistant on WhatsApp",
+  "description": "Siep — Cameron's personal AI assistant on Telegram",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "migrate": "tsx src/migrate.ts"
+    "start": "node dist/index.js"
   },
   "keywords": [],
   "author": "Cameron",

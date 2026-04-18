@@ -118,6 +118,27 @@ export async function queryEvents(params: {
   }));
 }
 
+export async function queryEventRange(from: Date, to: Date): Promise<CalendarEvent[]> {
+  const cal = getCalendar();
+  const res = await cal.events.list({
+    calendarId: 'primary',
+    timeMin: from.toISOString(),
+    timeMax: to.toISOString(),
+    singleEvents: true,
+    orderBy: 'startTime',
+    timeZone: TIMEZONE,
+  });
+
+  return (res.data.items || []).map((e) => ({
+    id: e.id || undefined,
+    title: e.summary || 'Untitled',
+    start: e.start?.dateTime || e.start?.date || '',
+    end: e.end?.dateTime || e.end?.date || '',
+    location: e.location || undefined,
+    description: e.description || undefined,
+  }));
+}
+
 export async function updateEvent(params: {
   eventId: string;
   title?: string;
@@ -144,14 +165,18 @@ export async function updateEvent(params: {
     const existingStart = new Date(
       existing.data.start?.dateTime || existing.data.start?.date || ''
     );
+    const existingEnd = new Date(
+      existing.data.end?.dateTime || existing.data.end?.date || ''
+    );
+    const originalDurationMin = Math.round((existingEnd.getTime() - existingStart.getTime()) / 60000);
+
     const newDate = params.date || format(existingStart, 'yyyy-MM-dd');
     const newTime = params.time || format(existingStart, 'HH:mm');
-    const duration = params.duration_minutes || DEFAULT_EVENT_DURATION_MINUTES;
+    const duration = params.duration_minutes || originalDurationMin || DEFAULT_EVENT_DURATION_MINUTES;
 
-    const startDate = new TZDate(
-      new Date(`${newDate}T${newTime}:00`),
-      TIMEZONE
-    );
+    const [yr, mo, dy] = newDate.split('-').map(Number);
+    const [hr, mn] = newTime.split(':').map(Number);
+    const startDate = new TZDate(yr, mo - 1, dy, hr, mn, 0, TIMEZONE);
     const endDate = addMinutes(startDate, duration);
 
     update.start = { dateTime: startDate.toISOString(), timeZone: TIMEZONE };

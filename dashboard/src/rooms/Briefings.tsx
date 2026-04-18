@@ -57,7 +57,7 @@ export function Briefings() {
               <div className={styles.emptyHeadline}>NO EDITION TODAY</div>
               <div className={styles.emptyBody}>
                 The morning paper hasn't been printed yet, boss.
-                Siep generates one fresh at 06:00 each morning.
+                Siep generates one fresh at 07:00 each morning.
               </div>
             </div>
           </div>

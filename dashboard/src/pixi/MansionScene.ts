@@ -167,10 +167,10 @@ export class MansionScene {
     if (this.lolaHugState === 'idle') this.updateLolaIdle(dt)
 
     // === Fountain water particles ===
-    this.updateFountain(dt)
+    this.updateFountain()
 
     // === Fireplace in Reading Room ===
-    this.updateFireplace(dt)
+    this.updateFireplace()
 
     // Lamp pulse
     for (const l of this.lampGlows) l.alpha = 0.3 + Math.sin(this.time * 2) * 0.1
@@ -514,7 +514,7 @@ export class MansionScene {
   }
 
   // Fountain: water droplets rising from courtyard center
-  private updateFountain(_dt: number) {
+  private updateFountain() {
     // Fountain is roughly at grid (8, 18) based on the background image
     const fPos = toIso(8, 18.5)
     if (Math.random() < 0.08) {
@@ -544,7 +544,7 @@ export class MansionScene {
   }
 
   // Fireplace: warm orange flicker particles in the Reading Room
-  private updateFireplace(_dt: number) {
+  private updateFireplace() {
     // Reading Room: col 9, row 15, armchair area ~(11, 17)
     const fpPos = toIso(10.5, 16)
     if (Math.random() < 0.04) {
