@@ -5,6 +5,7 @@ import { TZDate } from '@date-fns/tz';
 import { format } from 'date-fns';
 
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
+export const GROQ_MODEL_FAST = 'llama-3.1-8b-instant';
 
 let _client: Groq | null = null;
 
@@ -175,7 +176,8 @@ Cameron's message: "${message}"`,
 
 export async function generateResponse(
   prompt: string,
-  context: string
+  context: string,
+  modelOverride?: string
 ): Promise<string> {
   const client = getClient();
   const now = new TZDate(new Date(), TIMEZONE);
@@ -183,7 +185,7 @@ export async function generateResponse(
 
   const response = await withRetry(
     () => client.chat.completions.create({
-      model: GROQ_MODEL,
+      model: modelOverride || GROQ_MODEL,
       messages: [
         {
           role: 'system',

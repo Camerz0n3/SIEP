@@ -1,6 +1,9 @@
 import { ParsedIntent, generateResponse } from '../services/claude';
-import { scanAllEmails } from '../services/gmail';
+import { scanAllEmails, GmailUnavailableError } from '../services/gmail';
 import { db, generateId } from '../services/database';
+
+const GMAIL_DOWN_MESSAGE =
+  "Mail room's locked boss — Google auth is broken. Re-run the OAuth flow and update Railway.";
 
 interface DraftReply {
   id: string;
@@ -17,7 +20,13 @@ interface DraftReply {
 export async function handleEmailIntent(parsed: ParsedIntent): Promise<string> {
   switch (parsed.intent) {
     case 'check_emails': {
-      const emails = await scanAllEmails(12);
+      let emails;
+      try {
+        emails = await scanAllEmails(12);
+      } catch (e) {
+        if (e instanceof GmailUnavailableError) return GMAIL_DOWN_MESSAGE;
+        throw e;
+      }
       if (emails.length === 0) {
         return "Inbox is quiet — nothing important in the last 12 hours. Enjoy the peace.";
       }
@@ -29,7 +38,13 @@ export async function handleEmailIntent(parsed: ParsedIntent): Promise<string> {
 
     case 'draft_reply': {
       const p = parsed.params as Record<string, string | undefined>;
-      const emails = await scanAllEmails(24);
+      let emails;
+      try {
+        emails = await scanAllEmails(24);
+      } catch (e) {
+        if (e instanceof GmailUnavailableError) return GMAIL_DOWN_MESSAGE;
+        throw e;
+      }
       const target = emails.find(
         (e) =>
           e.from.toLowerCase().includes((p.from || '').toLowerCase()) ||
