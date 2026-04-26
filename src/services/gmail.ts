@@ -149,26 +149,51 @@ export async function classifyEmails(emails: EmailSummary[]): Promise<EmailSumma
   return emails;
 }
 
+export class GmailUnavailableError extends Error {
+  constructor(public failures: { account: 'personal' | 'koja'; reason: string }[]) {
+    const summary = failures
+      .map((f) => `${f.account}: ${f.reason}`)
+      .join('; ');
+    super(`All configured Gmail accounts failed (${summary}). Most likely cause: expired refresh token — re-run the OAuth flow and update Railway env.`);
+    this.name = 'GmailUnavailableError';
+  }
+}
+
 export async function scanAllEmails(
   hoursBack: number = 24
 ): Promise<EmailSummary[]> {
   const env = getEnv();
   const results: EmailSummary[] = [];
+  const failures: { account: 'personal' | 'koja'; reason: string }[] = [];
+  let attempted = 0;
 
+  attempted++;
   try {
     const personal = await scanEmails('personal', hoursBack);
     results.push(...personal);
   } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e);
     console.error('Failed to scan personal Gmail:', e);
+    failures.push({ account: 'personal', reason });
   }
 
   if (env.GOOGLE_KOJA_REFRESH_TOKEN) {
+    attempted++;
     try {
       const koja = await scanEmails('koja', hoursBack);
       results.push(...koja);
     } catch (e) {
+      const reason = e instanceof Error ? e.message : String(e);
       console.error('Failed to scan Koja Gmail:', e);
+      failures.push({ account: 'koja', reason });
     }
+  }
+
+  // If every attempted account failed, surface the error instead of silently
+  // returning an empty list. Partial failures (one account working) keep
+  // returning what we have so a temporary issue doesn't blank the dashboard.
+  if (failures.length === attempted) {
+    throw new GmailUnavailableError(failures);
   }
 
   return classifyEmails(results);

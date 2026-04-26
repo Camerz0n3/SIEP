@@ -202,10 +202,23 @@ app.get('/api/calendar/month', async (_req, res) => {
 
 app.get('/api/emails', async (_req, res) => {
   try {
-    const { scanAllEmails } = await import('./services/gmail');
-    const emails = await scanAllEmails(24);
-    res.json(emails);
+    const { scanAllEmails, GmailUnavailableError } = await import('./services/gmail');
+    try {
+      const emails = await scanAllEmails(24);
+      res.json(emails);
+    } catch (error) {
+      if (error instanceof GmailUnavailableError) {
+        // Gmail is auth-broken — return 503 so the dashboard can show a
+        // truthful "Mail room's locked, boss" instead of pretending zero mail.
+        return res.status(503).json({
+          error: 'gmail_unavailable',
+          message: error.message,
+        });
+      }
+      throw error;
+    }
   } catch (error) {
+    console.error('Email endpoint error:', error);
     res.status(500).json({ error: 'Failed to fetch emails' });
   }
 });
